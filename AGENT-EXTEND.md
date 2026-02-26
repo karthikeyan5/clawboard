@@ -56,6 +56,7 @@ cp -r core/templates/panel-example custom/panels/my-panel
   "id": "my-panel",
   "name": "My Panel",
   "version": "1.0.0",
+  "contractVersion": "1.0",
   "description": "What this panel shows",
   "author": "agent",
   "position": 10,
@@ -70,6 +71,7 @@ cp -r core/templates/panel-example custom/panels/my-panel
 |-------|------|-------------|
 | `id` | string | Must match folder name. Lowercase, hyphens only. |
 | `name` | string | Display name in dashboard |
+| `contractVersion` | string | Must be `"1.0"` for Preact+HTM panels |
 | `position` | number | Sort order (1=first, 999=last) |
 | `size` | string | `"half"` (50% width, 2-column) or `"full"` (100% width) |
 | `refreshMs` | number | Data refresh interval in milliseconds |
@@ -79,11 +81,13 @@ cp -r core/templates/panel-example custom/panels/my-panel
 
 ```javascript
 // Runs in Node.js on the server
-// Receives: { hooks, config, auth, store (v3+) }
+// Receives context: { hooks, config, auth, panel, deps }
+//   - panel: the manifest object for this panel
+//   - deps: { si } — shared systeminformation instance (avoids duplicate imports)
 // Must return: { endpoint: string, handler: async (req, res) => void }
 
-module.exports = ({ hooks, config, auth }) => ({
-  endpoint: '/api/panels/my-panel',
+module.exports = ({ hooks, config, auth, panel, deps }) => ({
+  endpoint: `/api/panels/${panel.id}`,
   handler: async (req, res) => {
     // Auth check (required for all panel endpoints)
     const user = auth.check(req);
@@ -97,37 +101,79 @@ module.exports = ({ hooks, config, auth }) => ({
     };
 
     // Optional: let hooks modify data before sending
-    const filtered = hooks.filter('panel.my-panel.data', data);
+    const filtered = await hooks.filter(`panel.${panel.id}.data`, data, { user });
     res.json(filtered);
   }
 });
 ```
 
+**Note on `deps`:** The `deps` context field provides shared dependencies (e.g. `deps.si` for systeminformation). Use this instead of importing heavy modules yourself to avoid duplicate instances and reduce memory usage.
+
 ### Step 4: Write ui.js (browser-side Preact+HTM component)
 
 ```javascript
 // Runs in the browser as a Preact+HTM component
-// The dashboard shell passes `data` prop from WebSocket updates
+// Import from the vendored bundle — no CDN, no build step
+import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
-import { html } from 'https://cdn.jsdelivr.net/npm/htm@3/preact/standalone.module.js';
+// Export default function component. PascalCase of panel id.
+export default function MyPanel({ data, error, connected, lastUpdate, api, config, cls }) {
+  if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
+  if (!data) return html`<div class=${cls('wrap')}><div class=${cls('label')}>Loading...</div></div>`;
 
-export function MyPanel({ data }) {
-  if (!data) return html`<div class="label">Loading...</div>`;
   return html`
-    <div class="label">${data.label}</div>
-    <div class="value">${data.value}</div>
+    <div class=${cls('wrap')}>
+      ${!connected && html`<div class=${cls('stale')}>⚠ Stale</div>`}
+      <div class=${cls('label')}>${data.label}</div>
+      <div class=${cls('value')}>${data.value}</div>
+    </div>
   `;
 }
 ```
 
 ### Rules for ui.js
 
-1. **Function name:** PascalCase version of panel id (`my-panel` → `MyPanel`)
-2. **Export:** Named export of the component function
-3. **Data prop:** Always `data` (Object) — the shell passes this from WebSocket
-4. **Use CSS variables** from core.css for consistent theming (see below)
-5. **Scoped styles:** Use class names from your panel's CSS; the shell handles isolation
+1. **Import:** Always from `/core/vendor/preact-htm.js` — never from a CDN
+2. **Export:** `export default function` — named export of the component
+3. **Props:** `{ data, error, connected, lastUpdate, api, config, cls }`
+4. **`cls()` helper:** Use `cls('name')` for scoped class names (generates `p-{panelId}-name`)
+5. **Use CSS variables** from core.css for consistent theming (see below)
 6. **Handle null data** — component renders before first data arrives, always check
+
+### Step 5: Write test.js (co-located unit test)
+
+Every panel should have a `test.js` alongside `api.js` and `ui.js`:
+
+```javascript
+// my-panel/test.js
+const { describe, it, mock } = require('node:test');
+const assert = require('node:assert/strict');
+
+describe('my-panel', () => {
+  it('returns data when authed', async () => {
+    const api = require('./api.js');
+    const mockAuth = { check: () => ({ id: 1 }) };
+    const mockHooks = { filter: async (_, d) => d };
+    const { handler } = api({ hooks: mockHooks, config: {}, auth: mockAuth, panel: { id: 'my-panel' }, deps: {} });
+
+    const res = { json: mock.fn(), status: mock.fn(() => res) };
+    await handler({}, res);
+    assert.ok(res.json.mock.calls.length > 0);
+  });
+
+  it('returns 403 when auth fails', async () => {
+    const api = require('./api.js');
+    const mockAuth = { check: () => null };
+    const { handler } = api({ hooks: {}, config: {}, auth: mockAuth, panel: { id: 'my-panel' }, deps: {} });
+
+    const res = { json: mock.fn(), status: mock.fn(() => res) };
+    await handler({}, res);
+    assert.equal(res.status.mock.calls[0].arguments[0], 403);
+  });
+});
+```
+
+**Testing convention:** All tests use `node:test` + `node:assert`. Run with `npm test`. Tests are co-located next to the code they test.
 
 ### Available CSS Variables
 
@@ -350,7 +396,7 @@ For more advanced theming, see `core/templates/theme-example/`.
 ## Error Handling
 
 - If your panel's api.js throws → returns `{ error: 'Panel API error' }` (doesn't crash server)
-- If your panel's ui.js throws → shows error card with "Load default" button → falls back to core panel
+- If your panel's ui.js throws → ErrorBoundary catches it and shows error card
 - If your hooks.js throws → logged to console, other hooks continue
 - If your route throws → returns 500, doesn't crash server
 
@@ -361,13 +407,19 @@ For more advanced theming, see `core/templates/theme-example/`.
 ## Testing Your Panel
 
 ```bash
-# 1. Start the server
+# 1. Run unit tests (co-located test.js files)
+npm test
+
+# 2. Run smoke tests (integration — all endpoints)
+npm run smoke
+
+# 3. Start the server for manual testing
 BOT_TOKEN=your-token node core/server.js
 
-# 2. Test your API endpoint
+# 4. Test your API endpoint
 curl http://localhost:3700/api/panels/my-panel
 
-# 3. Open the dashboard in browser
+# 5. Open the dashboard in browser
 # Your panel should appear in the grid
 ```
 
@@ -377,14 +429,16 @@ curl http://localhost:3700/api/panels/my-panel
 
 1. **NEVER edit anything in `core/`** — use custom/ or plugins/
 2. **Panel IDs:** lowercase, hyphens only (e.g. `my-panel`, not `myPanel`)
-3. **Custom element names:** `panel-{id}` (e.g. `panel-my-panel`)
+3. **UI components:** Preact+HTM, import from `/core/vendor/preact-htm.js`, `export default function`
 4. **API endpoints:** `/api/panels/{id}` for panel data
 5. **Always check auth** in api.js handlers
-6. **Always handle null data** in ui.js render()
+6. **Always handle null data** in ui.js
 7. **Use CSS variables** for colors/fonts — don't hardcode
-8. **Return data from filters** — forgetting `return` silently drops the data
-9. **Keep manifests accurate** — the shell relies on them for layout
-10. **Test before deploying** — run the server, hit your endpoint, check the UI
+8. **Use `cls()`** for scoped class names — never raw class strings
+9. **Return data from filters** — forgetting `return` silently drops the data
+10. **Keep manifests accurate** — the shell relies on them for layout
+11. **Write tests** — co-located test.js using `node:test` + `node:assert`
+12. **Test before deploying** — `npm test` then `npm run smoke`
 
 ---
 
