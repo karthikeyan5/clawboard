@@ -14,7 +14,7 @@ Each version adds one layer. Panels and plugins written for v2 will work in v6.
 **Core:**
 - 9 built-in panels (CPU, Memory, Disk, Uptime, Processes, Claude Usage, Crons, Models, OpenClaw Status)
 - WordPress-style hooks (actions + filters)
-- Panel contract: manifest.json + api.js + ui.js (Lit web components)
+- Panel contract: manifest.json + api.js + ui.js (Preact+HTM components)
 - Override system: custom/overrides/ folder name match = override
 - Plugin support: git clone into plugins/
 - Error boundaries: bad panel → fallback to core, dashboard never crashes

@@ -103,55 +103,31 @@ module.exports = ({ hooks, config, auth }) => ({
 });
 ```
 
-### Step 4: Write ui.js (browser-side Lit component)
+### Step 4: Write ui.js (browser-side Preact+HTM component)
 
 ```javascript
-// Runs in the browser as a Lit web component
-// The dashboard shell passes `data` property from WebSocket updates
+// Runs in the browser as a Preact+HTM component
+// The dashboard shell passes `data` prop from WebSocket updates
 
-import { LitElement, html, css } from 'https://cdn.jsdelivr.net/npm/lit@3/+esm';
+import { html } from 'https://cdn.jsdelivr.net/npm/htm@3/preact/standalone.module.js';
 
-export class MyPanel extends LitElement {
-  static properties = {
-    data: { type: Object }
-  };
-
-  static styles = css`
-    :host { display: block; }
-    .value {
-      font-family: var(--font-mono);
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--color-text);
-    }
-    .label {
-      font-size: 11px;
-      color: var(--color-text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-    }
+export function MyPanel({ data }) {
+  if (!data) return html`<div class="label">Loading...</div>`;
+  return html`
+    <div class="label">${data.label}</div>
+    <div class="value">${data.value}</div>
   `;
-
-  render() {
-    if (!this.data) return html`<div class="label">Loading...</div>`;
-    return html`
-      <div class="label">${this.data.label}</div>
-      <div class="value">${this.data.value}</div>
-    `;
-  }
 }
-
-customElements.define('panel-my-panel', MyPanel);
 ```
 
 ### Rules for ui.js
 
-1. **Class name:** PascalCase version of panel id (`my-panel` → `MyPanel`)
-2. **Custom element name:** `panel-{id}` (`panel-my-panel`)
-3. **Data property:** Always `data` (Object type) — the shell sets this from WebSocket
+1. **Function name:** PascalCase version of panel id (`my-panel` → `MyPanel`)
+2. **Export:** Named export of the component function
+3. **Data prop:** Always `data` (Object) — the shell passes this from WebSocket
 4. **Use CSS variables** from core.css for consistent theming (see below)
-5. **Shadow DOM** is automatic with Lit — your styles won't leak, core styles won't bleed in
-6. **Handle null data** — `render()` is called before first data arrives, always check
+5. **Scoped styles:** Use class names from your panel's CSS; the shell handles isolation
+6. **Handle null data** — component renders before first data arrives, always check
 
 ### Available CSS Variables
 
