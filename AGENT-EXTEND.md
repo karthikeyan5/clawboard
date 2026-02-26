@@ -4,6 +4,21 @@
 
 ---
 
+## ⚠️ Docs Ship With Code — Mandatory
+
+Every code change **must** include corresponding documentation updates. No exceptions.
+
+- New panel → update AGENT-EXTEND.md with usage example
+- Contract change → update CONTRACTS.md
+- Architecture change → update architecture.yaml + ARCHITECTURE.md
+- New convention → update CONVENTIONS.md
+- Breaking change → update BREAKING_CHANGES.md
+- README-visible feature → update README.md
+
+**A PR/commit without docs for user-facing changes is incomplete.**
+
+---
+
 ## Architecture Overview
 
 ```
