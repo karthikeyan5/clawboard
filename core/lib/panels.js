@@ -1,12 +1,10 @@
-/**
- * Panel discovery, loading, registration — Contract v1.0
- * 
- * Resolution order (last wins):
- * 1. core/panels/
- * 2. custom/panels/
- * 3. plugins/*/panels/
- * 4. custom/overrides/
- */
+// Panel discovery, loading, registration — Contract v1.0
+//
+// Resolution order (last wins):
+// 1. core/panels/
+// 2. custom/panels/
+// 3. plugins/*/panels/
+// 4. custom/overrides/
 
 const fs = require('fs');
 const path = require('path');
