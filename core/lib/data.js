@@ -8,7 +8,9 @@ const path = require('path');
 const si = require('systeminformation');
 const { execFileSync } = require('child_process');
 
-const WORKSPACE = path.resolve(__dirname, '..', '..');
+// WORKSPACE = parent of the dashboard root (where claude-usage.json lives)
+const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const WORKSPACE = path.resolve(ROOT_DIR, '..');
 
 async function getSystemMetrics() {
   const [cpu, mem, disk, time, osInfo, proc] = await Promise.all([
