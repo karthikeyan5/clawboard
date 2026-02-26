@@ -446,6 +446,12 @@
       </div>`;
     }
 
+    // Register service worker (browser only, not Mini App)
+    const isMiniApp = !!(tg && tg.initData);
+    if (!isMiniApp && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/public/sw.js').catch(() => {});
+    }
+
     // Mount
     render(html`<${App} />`, document.getElementById('app'));
   </script>
