@@ -66,7 +66,7 @@
 
 ### api.js (CommonJS)
 ```js
-module.exports = ({ hooks, config, auth, panel }) => ({
+module.exports = ({ hooks, config, auth, panel, deps }) => ({
   endpoint: `/api/panels/${panel.id}`,
 
   handler: async (req, res) => {
@@ -88,6 +88,23 @@ module.exports = ({ hooks, config, auth, panel }) => ({
 - Return MUST match `dataSchema`
 - Use `hooks.filter()` before responding
 - No side effects outside handler. No global state. No timers.
+
+### `deps` (Dependency Injection for Testability)
+
+Core injects `deps` into api.js context:
+
+| Key | Type | Wraps |
+|-----|------|-------|
+| `deps.exec(cmd, args)` | async → stdout string | `child_process.execFile` |
+| `deps.readFile(path, enc)` | async → string | `fs.promises.readFile` |
+| `deps.fetch(url, opts)` | async → Response | `global.fetch` |
+
+**Rules:**
+- `deps` is optional — panels MAY use direct `require()` for backward compat
+- Panels SHOULD use `deps` when available for testability
+- Core provides real implementations in production
+- Only these 3 to start. Additive expansion is non-breaking.
+- In tests, inject mocks via `deps` to avoid monkey-patching
 
 ### ui.js (ESM, Preact+HTM)
 ```js
@@ -251,7 +268,7 @@ This split is intentional. Don't "fix" it.
 
 - Adding required fields to manifest.json
 - Changing ui.js props shape (adding is OK, removing/renaming is breaking)
-- Changing api.js context shape
+- Changing api.js context shape (adding new fields is non-breaking, like ui.js props; removing or renaming existing fields is breaking)
 - Changing hook naming convention
 - Changing `cls()` behavior
 - Changing reserved route prefixes
