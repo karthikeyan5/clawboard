@@ -56,6 +56,16 @@ export default function CronsPanel({ data, error, connected, lastUpdate, api, co
 
   const toggle = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
+  const cronAction = async (jobId, action) => {
+    try {
+      await api.fetch('/api/crons/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, action })
+      });
+    } catch {}
+  };
+
   const summary = `${active} active` + (errors ? ` · ${errors} ⚠` : '') + (disabled ? ` · ${disabled} off` : '');
 
   const filters = ['all', 'active', 'errors', 'disabled'];
@@ -100,6 +110,10 @@ export default function CronsPanel({ data, error, connected, lastUpdate, api, co
                     ${j.model && html`<div style="margin-bottom:4px"><strong style="color:var(--text)">Model:</strong> ${shortModel(j.model)}</div>`}
                     ${j.sessionTarget && html`<div style="margin-bottom:4px"><strong style="color:var(--text)">Session:</strong> ${j.sessionTarget}</div>`}
                     ${j.lastError && j.consecutiveErrors > 0 && html`<div style="color:var(--red);margin-top:4px;font-size:10px">${j.lastError}</div>`}
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                      <button onClick=${() => cronAction(j.id, 'run')} style="padding:3px 10px;font-size:10px;border-radius:6px;border:1px solid var(--green);background:transparent;color:var(--green);cursor:pointer">▶ Run</button>
+                      <button onClick=${() => cronAction(j.id, j.enabled ? 'disable' : 'enable')} style="padding:3px 10px;font-size:10px;border-radius:6px;border:1px solid ${j.enabled ? 'var(--red)' : 'var(--green)'};background:transparent;color:${j.enabled ? 'var(--red)' : 'var(--green)'};cursor:pointer">${j.enabled ? 'Disable' : 'Enable'}</button>
+                    </div>
                   </div>
                 `}
               </div>

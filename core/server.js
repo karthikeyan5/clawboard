@@ -277,6 +277,53 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: updater.getVersionInfo().version });
 });
 
+// Action: refresh Claude usage data
+app.post('/api/usage/refresh', async (req, res) => {
+  const user = auth.check(req);
+  if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+  try {
+    const { execFile } = require('child_process');
+    const { promisify } = require('util');
+    const execFileAsync = promisify(execFile);
+    const WORKSPACE = path.resolve(__dirname, '..', '..');
+    const scriptPath = path.join(WORKSPACE, 'skills/claude-usage-monitor/scripts/claude-usage-poll.sh');
+    await execFileAsync('bash', [scriptPath], {
+      timeout: 15000,
+      env: { ...process.env, HOME: process.env.HOME || '/home/claw' }
+    });
+    const { getUsageData } = require('./lib/data');
+    const data = getUsageData();
+    res.json(data || { error: 'No data after refresh' });
+  } catch {
+    res.status(500).json({ error: 'Refresh failed' });
+  }
+});
+
+// Action: run/enable/disable cron jobs
+app.post('/api/crons/action', async (req, res) => {
+  const user = auth.check(req);
+  if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+  const { jobId, action } = req.body || {};
+  if (!jobId || !action) return res.status(400).json({ error: 'Missing jobId or action' });
+  if (!['run', 'enable', 'disable'].includes(action)) return res.status(400).json({ error: 'Invalid action' });
+
+  try {
+    const { execFileSync } = require('child_process');
+    if (action === 'run') {
+      execFileSync('openclaw', ['cron', 'run', jobId], { timeout: 10000, encoding: 'utf8' });
+    } else if (action === 'enable') {
+      execFileSync('openclaw', ['cron', 'update', jobId, '--enabled', 'true'], { timeout: 5000, encoding: 'utf8' });
+    } else if (action === 'disable') {
+      execFileSync('openclaw', ['cron', 'update', jobId, '--enabled', 'false'], { timeout: 5000, encoding: 'utf8' });
+    }
+    res.json({ ok: true, action, jobId });
+  } catch {
+    res.status(500).json({ error: 'Action failed' });
+  }
+});
+
 // ── Pages ──
 app.get('/', (req, res) => {
   res.sendFile(path.join(ROOT_DIR, 'core', 'public', 'landing.html'));

@@ -30,6 +30,16 @@ const fmtFetchedAt = (iso) => {
 };
 
 export default function ClaudeUsagePanel({ data, error, connected, lastUpdate, api, config, cls }) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await api.fetch('/api/usage/refresh', { method: 'POST' });
+    } catch {}
+    setTimeout(() => setRefreshing(false), 2000);
+  };
+
   if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
   const d = data || { five_hour: { utilization_pct: 0 }, seven_day: { utilization_pct: 0 } };
 
@@ -44,8 +54,9 @@ export default function ClaudeUsagePanel({ data, error, connected, lastUpdate, a
           <span class=${cls('dot')} style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);vertical-align:middle;margin-right:8px"></span>
           Claude Usage
         </span>
-        <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace">
+        <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:4px">
           ${data ? fmtFetchedAt(d.fetched_at) : ''}
+          <button onClick=${handleRefresh} style="background:none;border:none;cursor:pointer;font-size:14px;opacity:${refreshing ? 0.3 : 0.6};padding:2px 4px" disabled=${refreshing}>🔄</button>
         </span>
       </div>
       <div class=${cls('grid')} style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
