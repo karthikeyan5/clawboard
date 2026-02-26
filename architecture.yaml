@@ -23,7 +23,7 @@ panel_contract:
     api: api.js                # required, cjs
     ui: ui.js                  # required, esm, preact function component
     test: test.js              # optional, esm
-  api_signature: "({ hooks, config, auth, panel }) => { endpoint, handler }"
+  api_signature: "({ hooks, config, auth, panel, deps }) => { endpoint, handler }"
   ui_signature: "({ data, error, connected, lastUpdate, api, config, cls }) => VNode"
   test_signature: "{ fixtures: [{name, data}], assertions: (html, fixture) => void }"
   naming:
@@ -83,8 +83,9 @@ core_guarantees:
 capabilities:
   v2: [fetch]
   v3: [fetch, store]
-  v4: [fetch, store, agent]
-  v5: [fetch, store, agent, multi]
+  v4: [fetch, store, pages]
+  v5: [fetch, store, pages, roles]
+  v6: [fetch, store, pages, roles, events, files]
 
 extension_points:
   panels: custom/panels/

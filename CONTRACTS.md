@@ -129,7 +129,7 @@ export default function CpuPanel({ data, error, connected, lastUpdate, api, conf
 | `error` | `{error: string, code?: string, retry?: boolean}\|null` | Error from api.js or core. |
 | `connected` | `boolean` | WebSocket alive? |
 | `lastUpdate` | `number\|null` | Timestamp (ms) of last data push. |
-| `api` | `object` | Injected helpers. v2: `{ fetch }`. v3+: adds `store`. v4+: adds `agent`. |
+| `api` | `object` | Injected helpers. v2: `{ fetch }`. v3+: adds `store`. v4+: adds `navigate`. v6+: adds `emit/on/state/files`. |
 | `config` | `object` | Panel config from `config.panels.{id}`. |
 | `cls` | `(name) => string` | Scoped class helper. `cls('metric')` → `'p-cpu-metric'`. |
 
@@ -261,6 +261,19 @@ Passed to ui.js as `error` prop. Panels should render error state, not crash.
 | `hooks.js` | CommonJS | Server-side |
 
 This split is intentional. Don't "fix" it.
+
+---
+
+## Forward Compatibility Notes
+
+These are **non-breaking** and may happen in minor versions:
+
+1. **New `api` prop methods** — v3 adds `store`, v4 adds `navigate`, v6 adds `emit/on/state/files`. Panels that don't use new methods are unaffected. All v6 interaction APIs (events, shared state) go through the `api` prop — no new top-level props.
+2. **New reserved route prefixes** — Core may reserve new prefixes (e.g., `/api/store/`, `/api/files/`). Custom routes using `/api/custom/` prefix are always safe.
+3. **New CSS variables** — Core may add variables (e.g., `--input-bg`, `--sidebar-width`). Existing variables won't change names.
+4. **Vendor bundle growth** — `core/vendor/preact-htm.js` may include additional Preact ecosystem modules (e.g., router for v4, signals for v6). Existing imports remain stable.
+5. **New manifest.json fields** — Optional fields may be added (e.g., `forms` for v3, `permissions` for v5). Existing manifests without new fields continue to work.
+6. **New capabilities** — The `capabilities` list grows per version. Core validates that requested capabilities are available in the current version.
 
 ---
 
