@@ -1,0 +1,12 @@
+{
+  "id": "processes",
+  "name": "Process Overview",
+  "version": "1.0.0",
+  "description": "Total, running, sleeping process counts and OS info",
+  "author": "openclaw",
+  "position": 5,
+  "size": "full",
+  "refreshMs": 2000,
+  "requires": [],
+  "config": {}
+}

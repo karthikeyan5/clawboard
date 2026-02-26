@@ -1,0 +1,23 @@
+{
+  "id": "example-panel",
+  "name": "Example Panel",
+  "version": "1.0.0",
+  "description": "A complete working example panel that you can copy and customize",
+  "author": "openclaw",
+  "position": 999,
+  "size": "half",
+  "refreshMs": 5000,
+  "requires": [],
+  "config": {
+    "showGraph": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the chart visualization"
+    },
+    "refreshInterval": {
+      "type": "number",
+      "default": 5000,
+      "description": "Refresh interval in milliseconds"
+    }
+  }
+}

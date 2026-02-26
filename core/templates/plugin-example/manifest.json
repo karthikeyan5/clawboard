@@ -1,0 +1,11 @@
+{
+  "id": "example-plugin",
+  "name": "Example Plugin",
+  "version": "1.0.0",
+  "description": "A complete plugin example with panels, hooks, and routes",
+  "author": "openclaw",
+  "repository": "https://github.com/openclaw/dashboard-plugin-example",
+  "requires": {
+    "dashboard": "^2.0.0"
+  }
+}

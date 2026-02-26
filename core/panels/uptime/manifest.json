@@ -1,0 +1,12 @@
+{
+  "id": "uptime",
+  "name": "System Uptime",
+  "version": "1.0.0",
+  "description": "System uptime and hostname",
+  "author": "openclaw",
+  "position": 4,
+  "size": "half",
+  "refreshMs": 2000,
+  "requires": [],
+  "config": {}
+}

@@ -1,0 +1,12 @@
+{
+  "id": "crons",
+  "name": "Scheduled Jobs",
+  "version": "1.0.0",
+  "description": "View and manage OpenClaw cron jobs with status, filters, and actions",
+  "author": "openclaw",
+  "position": 7,
+  "size": "full",
+  "refreshMs": 5000,
+  "requires": [],
+  "config": {}
+}

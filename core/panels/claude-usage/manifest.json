@@ -1,0 +1,12 @@
+{
+  "id": "claude-usage",
+  "name": "Claude Usage",
+  "version": "1.0.0",
+  "description": "Claude Max subscription usage stats (5hr, 7day, per-model). Hidden if data unavailable.",
+  "author": "openclaw",
+  "position": 6,
+  "size": "full",
+  "refreshMs": 5000,
+  "requires": [],
+  "config": {}
+}

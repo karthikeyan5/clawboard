@@ -1,0 +1,12 @@
+{
+  "id": "disk",
+  "name": "Disk Usage",
+  "version": "1.0.0",
+  "description": "Disk space usage with mount point info",
+  "author": "openclaw",
+  "position": 3,
+  "size": "half",
+  "refreshMs": 2000,
+  "requires": [],
+  "config": {}
+}

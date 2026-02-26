@@ -1,0 +1,86 @@
+/**
+ * Example Custom Theme
+ * 
+ * Copy this to custom/theme/theme.css and customize the CSS variables.
+ * The dashboard will automatically load custom/theme/theme.css if it exists.
+ */
+
+:root {
+  /* ── Background Colors ── */
+  --bg: #06060e;              /* Main background */
+  --bg2: #0c0c18;             /* Secondary background (unused in default) */
+  --card: #10101e;            /* Panel card background */
+  --card-border: rgba(201, 168, 76, 0.08);  /* Card borders */
+
+  /* ── Accent Color ── */
+  --accent: #c9a84c;          /* Gold accent (primary brand color) */
+  --accent-dim: rgba(201, 168, 76, 0.15);   /* Dimmed accent (backgrounds) */
+  --accent-glow: rgba(201, 168, 76, 0.3);   /* Glow effect */
+
+  /* ── Status Colors ── */
+  --red: #ef4444;             /* Error, danger, critical */
+  --red-dim: rgba(239, 68, 68, 0.15);
+  --green: #4ade80;           /* Success, healthy, active */
+  --green-dim: rgba(74, 222, 128, 0.15);
+  --yellow: #fbbf24;          /* Warning, pending */
+  --yellow-dim: rgba(251, 191, 36, 0.15);
+  --cyan: #22d3ee;            /* Info, neutral highlight */
+  --cyan-dim: rgba(34, 211, 238, 0.15);
+
+  /* ── Text Colors ── */
+  --text: #e8e8f0;            /* Primary text */
+  --text-dim: #6a6a7a;        /* Secondary/muted text */
+  --text-mid: #9a9aaa;        /* Mid-tone text */
+}
+
+/* ── Example Theme Variations ── */
+
+/* Cyberpunk Purple
+:root {
+  --accent: #a855f7;
+  --accent-dim: rgba(168, 85, 247, 0.15);
+  --accent-glow: rgba(168, 85, 247, 0.3);
+  --bg: #0a0014;
+  --card: #1a0a2e;
+}
+*/
+
+/* Matrix Green
+:root {
+  --accent: #00ff41;
+  --accent-dim: rgba(0, 255, 65, 0.15);
+  --accent-glow: rgba(0, 255, 65, 0.3);
+  --bg: #000000;
+  --card: #0a0a0a;
+  --green: #00ff41;
+  --green-dim: rgba(0, 255, 65, 0.15);
+}
+*/
+
+/* Warm Orange
+:root {
+  --accent: #f97316;
+  --accent-dim: rgba(249, 115, 22, 0.15);
+  --accent-glow: rgba(249, 115, 22, 0.3);
+}
+*/
+
+/* Ice Blue
+:root {
+  --accent: #3b82f6;
+  --accent-dim: rgba(59, 130, 246, 0.15);
+  --accent-glow: rgba(59, 130, 246, 0.3);
+  --bg: #0a0f1a;
+  --card: #0f1729;
+}
+*/
+
+/* Blood Red
+:root {
+  --accent: #dc2626;
+  --accent-dim: rgba(220, 38, 38, 0.15);
+  --accent-glow: rgba(220, 38, 38, 0.3);
+  --red: #ef4444;
+  --red-dim: rgba(239, 68, 68, 0.2);
+}
+*/

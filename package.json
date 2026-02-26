@@ -1,0 +1,16 @@
+{
+  "name": "clawboard",
+  "version": "2.0.0",
+  "description": "Telegram-authenticated dashboard for OpenClaw agents — live system metrics, usage stats, and personality landing page.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.2.1",
+    "systeminformation": "^5.25.0",
+    "ws": "^8.18.0"
+  }
+}

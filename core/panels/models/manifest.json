@@ -1,0 +1,12 @@
+{
+  "id": "models",
+  "name": "Model Routing",
+  "version": "1.0.0",
+  "description": "Agent model configuration: primary, fallbacks, sub-agent, heartbeat",
+  "author": "openclaw",
+  "position": 8,
+  "size": "full",
+  "refreshMs": 10000,
+  "requires": [],
+  "config": {}
+}

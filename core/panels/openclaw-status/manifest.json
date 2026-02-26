@@ -1,0 +1,12 @@
+{
+  "id": "openclaw-status",
+  "name": "OpenClaw Status",
+  "version": "1.0.0",
+  "description": "Raw output from 'openclaw status' command",
+  "author": "openclaw",
+  "position": 9,
+  "size": "full",
+  "refreshMs": 10000,
+  "requires": [],
+  "config": {}
+}

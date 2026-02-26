@@ -1,0 +1,12 @@
+{
+  "id": "cpu",
+  "name": "CPU Load",
+  "version": "1.0.0",
+  "description": "Real-time CPU usage with core count and progress bar",
+  "author": "openclaw",
+  "position": 1,
+  "size": "half",
+  "refreshMs": 2000,
+  "requires": [],
+  "config": {}
+}

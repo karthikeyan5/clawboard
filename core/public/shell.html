@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/core.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-avatar" id="h-emoji">🤖</div>
+      <div>
+        <h1 id="h-name">Dashboard</h1>
+        <div class="header-sub" id="h-subtitle"></div>
+      </div>
+      <div class="header-right">
+        <div class="live-dot" id="ws-dot"></div>
+        <span class="live-label" id="ws-label">CONNECTING</span>
+        <div id="logout-area"></div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div id="main-content">
+      <div class="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Initializing systems...</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <span id="last-update"></span><br>
+      © <span id="f-year"></span> <span id="f-company"></span>
+    </div>
+  </div>
+
+  <script>
+    // ── Shared helper functions ──
+    function fmtBytes(b) {
+      if (b >= 1073741824) return (b / 1073741824).toFixed(1) + ' GB';
+      if (b >= 1048576) return (b / 1048576).toFixed(0) + ' MB';
+      return (b / 1024).toFixed(0) + ' KB';
+    }
+    function fmtUptime(s) {
+      const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+      if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+      if (h > 0) return h + 'h ' + m + 'm';
+      return m + 'm';
+    }
+    function barColor(pct) { return pct < 50 ? 'var(--green)' : pct < 80 ? 'var(--yellow)' : 'var(--red)'; }
+    function barBg(pct) { return pct < 50 ? 'var(--green-dim)' : pct < 80 ? 'var(--yellow-dim)' : 'var(--red-dim)'; }
+    function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function shortModel(m) { return m ? m.replace('anthropic/','').replace('google/','').replace(/-2025\d{4}/g,'') : ''; }
+    function fmtResetTime(iso) {
+      if (!iso) return '';
+      const diff = new Date(iso) - new Date();
+      if (diff <= 0) return 'Resetting…';
+      const mins = Math.floor(diff / 60000), hrs = Math.floor(mins / 60);
+      if (hrs < 1) return 'in ' + mins + 'm';
+      if (hrs < 24) return 'in ' + hrs + 'h ' + (mins % 60) + 'm';
+      return new Date(iso).toLocaleDateString('en-IN', { month:'short', day:'numeric' });
+    }
+    function fmtFetchedAt(iso) {
+      if (!iso) return '';
+      const mins = Math.floor((Date.now() - new Date(iso)) / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ' + (mins % 60) + 'm ago';
+      return new Date(iso).toLocaleDateString('en-IN', { month:'short', day:'numeric' });
+    }
+
+    // ── Telegram WebApp detection ──
+    const tg = window.Telegram?.WebApp;
+    let initData = '';
+    let browserMode = false;
+    let ws = null;
+    let wsRetries = 0;
+    const MAX_RETRIES = 10;
+
+    if (tg && tg.initData) {
+      tg.ready();
+      tg.expand();
+      document.body.classList.add('tg-theme');
+      initData = tg.initData;
+    } else {
+      browserMode = true;
+    }
+
+    // ── Load config & customize theme ──
+    let config = {};
+    (async () => {
+      try {
+        const res = await fetch('/api/config');
+        config = await res.json();
+        document.title = `${config.name || 'Agent'} — Dashboard`;
+        document.getElementById('h-emoji').textContent = config.emoji || '🤖';
+        document.getElementById('h-name').textContent = config.name || 'Dashboard';
+        document.getElementById('h-subtitle').textContent = (config.role || 'AI Agent').toUpperCase();
+        document.getElementById('f-year').textContent = new Date().getFullYear();
+        document.getElementById('f-company').textContent = config.company || '';
+        if (config.accent) {
+          document.documentElement.style.setProperty('--accent', config.accent);
+          document.documentElement.style.setProperty('--accent-dim', config.accent + '22');
+          document.documentElement.style.setProperty('--accent-glow', config.accent + '44');
+        }
+        if (browserMode) {
+          document.getElementById('logout-area').innerHTML =
+            '<button class="refresh-btn" onclick="location.href=\'/auth/logout\'">Logout</button>';
+        }
+      } catch (err) {
+        console.error('[Config] Failed to load:', err);
+      }
+    })();
+
+    // ── Auth check ──
+    async function checkAuth() {
+      try {
+        const opts = browserMode
+          ? { credentials: 'same-origin' }
+          : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData }) };
+        const res = await fetch('/api/auth', opts);
+        if (!res.ok) {
+          window.location.href = '/';
+          return false;
+        }
+        return true;
+      } catch {
+        window.location.href = '/';
+        return false;
+      }
+    }
+
+    // ── Panel system ──
+    let panels = [];
+    let panelInstances = new Map(); // { panelId: { el, ui } }
+
+    async function loadPanels() {
+      try {
+        const res = await fetch('/api/panels');
+        panels = await res.json();
+        
+        // Build panel grid
+        const grid = document.createElement('div');
+        grid.className = 'metrics-grid';
+        grid.id = 'panels-grid';
+
+        for (const panel of panels) {
+          const card = document.createElement('div');
+          card.className = `metric-card ${panel.size === 'full' ? 'full' : ''}`;
+          card.style.animation = 'fadeUp 0.4s ease forwards';
+          card.style.animationDelay = `${0.05 * panels.indexOf(panel)}s`;
+          card.id = `panel-${panel.id}`;
+
+          // Load panel UI script
+          try {
+            await new Promise((resolve, reject) => {
+              const script = document.createElement('script');
+              script.src = `/api/panels/${panel.id}/ui.js`;
+              script.onload = resolve;
+              script.onerror = reject;
+              document.head.appendChild(script);
+            });
+
+            // Get panel UI from global registry
+            const panelUI = window.DashboardPanels?.[panel.id];
+            if (panelUI) {
+              panelUI.render(card, null);
+              panelInstances.set(panel.id, { el: card, ui: panelUI });
+            } else {
+              throw new Error('Panel not registered');
+            }
+          } catch (err) {
+            console.error(`[Panel] Failed to load ${panel.id}:`, err);
+            card.innerHTML = `<div class="panel-error">
+              <div style="color: var(--red); font-size: 12px; font-weight: 600;">Panel Load Error</div>
+              <div style="color: var(--text-dim); font-size: 11px; margin-top: 4px;">${panel.name}</div>
+            </div>`;
+          }
+
+          grid.appendChild(card);
+        }
+
+        document.getElementById('main-content').innerHTML = '';
+        document.getElementById('main-content').appendChild(grid);
+      } catch (err) {
+        console.error('[Panels] Failed to load panel list:', err);
+        document.getElementById('main-content').innerHTML = `
+          <div class="status-banner error">Failed to load panels</div>
+        `;
+      }
+    }
+
+    // ── WebSocket connection ──
+    function connectWS() {
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${proto}//${location.host}/ws/metrics`);
+
+      ws.onopen = () => {
+        wsRetries = 0;
+        document.getElementById('ws-dot').className = 'live-dot';
+        document.getElementById('ws-label').className = 'live-label';
+        document.getElementById('ws-label').textContent = 'LIVE';
+
+        if (initData) {
+          ws.send(JSON.stringify({ type: 'auth', initData }));
+        } else {
+          fetch('/api/auth', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+              if (data.ok) ws.send(JSON.stringify({ type: 'auth', cookieAuth: true, user: data.user }));
+              else ws.close();
+            })
+            .catch(() => ws.close());
+        }
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const msg = JSON.parse(e.data);
+          if (msg.type === 'auth' && !msg.ok) {
+            window.location.href = '/';
+            return;
+          }
+          if (msg.type === 'metrics') {
+            updatePanels(msg);
+            document.getElementById('last-update').textContent =
+              'Last update: ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          }
+        } catch {}
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-dot').className = 'live-dot offline-dot';
+        document.getElementById('ws-label').className = 'live-label offline-label';
+        document.getElementById('ws-label').textContent = 'OFFLINE';
+        if (wsRetries < MAX_RETRIES) {
+          wsRetries++;
+          setTimeout(connectWS, Math.min(1000 * wsRetries, 10000));
+        }
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    // ── Update panels with WebSocket data ──
+    function updatePanels(msg) {
+      // Map data to panels
+      const dataMap = {
+        cpu: msg.data?.cpu ? { load: msg.data.cpu.load, cores: msg.data.cpu.cores } : null,
+        memory: msg.data?.memory ? { total: msg.data.memory.total, used: msg.data.memory.used, pct: msg.data.memory.pct } : null,
+        disk: msg.data?.disk ? { total: msg.data.disk.total, used: msg.data.disk.used, pct: msg.data.disk.pct, mount: msg.data.disk.mount } : null,
+        uptime: msg.data ? { uptime: msg.data.uptime, hostname: msg.data.hostname } : null,
+        processes: msg.data?.processes ? { total: msg.data.processes.total, running: msg.data.processes.running, sleeping: msg.data.processes.sleeping, os: msg.data.os } : null,
+        'claude-usage': msg.usage,
+        crons: msg.crons,
+        models: msg.agent,
+        'openclaw-status': msg._oclStatus || null
+      };
+
+      for (const [panelId, data] of Object.entries(dataMap)) {
+        const instance = panelInstances.get(panelId);
+        if (instance && data !== undefined && data !== null) {
+          instance.ui.update(instance.el, data);
+        }
+      }
+
+      // Fetch openclaw-status on first metrics msg if not yet loaded
+      if (!window._oclStatusLoaded) {
+        window._oclStatusLoaded = true;
+        const fetchOpts = initData
+          ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData }) }
+          : { credentials: 'same-origin' };
+        fetch('/api/panels/openclaw-status', fetchOpts)
+          .then(r => r.json())
+          .then(data => {
+            const inst = panelInstances.get('openclaw-status');
+            if (inst && data && !data.error) inst.ui.update(inst.el, data);
+          })
+          .catch(() => {});
+      }
+    }
+
+    // ── Global event handlers ──
+    // Refresh Claude usage
+    document.addEventListener('refresh-usage', async (e) => {
+      try {
+        const opts = browserMode
+          ? { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: '{}' }
+          : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData }) };
+        const res = await fetch('/api/usage/refresh', opts);
+        if (res.ok) {
+          const data = await res.json();
+          const instance = panelInstances.get('claude-usage');
+          if (instance) instance.ui.update(instance.el, data);
+        }
+      } catch (err) {
+        console.error('[Usage] Refresh failed:', err);
+      }
+    });
+
+    // Cron actions
+    document.addEventListener('cron-action', async (e) => {
+      const { jobId, action } = e.detail;
+      try {
+        const opts = browserMode
+          ? { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jobId, action }) }
+          : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ initData, jobId, action }) };
+        await fetch('/api/crons/action', opts);
+      } catch (err) {
+        console.error('[Cron] Action failed:', err);
+      }
+    });
+
+    // ── Init ──
+    (async () => {
+      if (await checkAuth()) {
+        await loadPanels();
+        connectWS();
+      }
+    })();
+  </script>
+</body>
+</html>

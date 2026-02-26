@@ -1,0 +1,12 @@
+{
+  "id": "memory",
+  "name": "Memory Usage",
+  "version": "1.0.0",
+  "description": "RAM usage with total/used breakdown and progress bar",
+  "author": "openclaw",
+  "position": 2,
+  "size": "half",
+  "refreshMs": 2000,
+  "requires": [],
+  "config": {}
+}
