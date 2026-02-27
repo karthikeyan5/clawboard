@@ -61,9 +61,23 @@ But: the file system shows structure, not relationships. For cross-panel depende
 ## 7. One canonical location per concern
 
 Every piece of information lives in exactly ONE place. Duplication creates contradictions.
+Cross-references are fine ("see CONTRACTS.md"), copies are not.
 
-- Panel auth rules → CONTRACTS.md (not also in AGENT-EXTEND.md)
-- Architecture decisions → ARCHITECTURE.md (not also in README.md)
-- Cross-references are fine ("see CONTRACTS.md"), copies are not.
+**Canonical locations:**
 
-When an agent updates one copy and misses the other, you get contradictions. This is the most common source of documentation bugs.
+| Concern | File | Contains |
+|---------|------|----------|
+| What the rules are | `CONTRACTS.md` | Panel contract, manifest schema, ui.js props, CSS, hooks, errors |
+| Why it's built this way | `ARCHITECTURE.md` | WHY decisions with "would change if" conditions |
+| How to extend it | `AGENT-EXTEND.md` | Tutorials for custom panels, routes, plugins, themes |
+| How to set it up | `AGENT-SETUP.md` | Step-by-step setup for AI agents |
+| Testing strategy | `TESTING.md` | 3 layers, conventions, coverage map, visual testing plan |
+| Decision framework | `CONVENTIONS.md` | This file — principles that guide decisions |
+| What's planned | `ROADMAP.md` | Version-by-version feature plan (v2→v6) |
+| What broke | `BREAKING_CHANGES.md` | Migration guide for breaking changes |
+| Machine-readable spec | `architecture.yaml` | Structure, relationships, extension points |
+| What it is + install | `README.md` | Intro, quick start, links to docs. Never duplicates other docs. |
+
+**Rule:** When updating information, find the canonical location first. If you update README.md with contract details that belong in CONTRACTS.md, you've created a future contradiction.
+
+**Enforced by CI:** `.github/workflows/docs-check.yml` blocks PRs that change core Go files without updating documentation. Escape hatch: `[no-docs]` in commit message for internal refactors.

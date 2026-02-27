@@ -174,7 +174,7 @@ clawboard/
 └── config.json          # Your config (git-ignored)
 ```
 
-Decisions documented in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Conventions in [`CONVENTIONS.md`](./CONVENTIONS.md). Roadmap in [`ROADMAP.md`](./ROADMAP.md).
+Decisions documented in [`ARCHITECTURE.md`](./ARCHITECTURE.md). Conventions in [`CONVENTIONS.md`](./CONVENTIONS.md). Testing strategy in [`TESTING.md`](./TESTING.md). Roadmap in [`ROADMAP.md`](./ROADMAP.md).
 
 ## Security
 
@@ -207,10 +207,12 @@ Clawboard doesn't replace monitoring tools. It gives your **AI agent** a face �
 ## Contributing
 
 ```bash
-go test ./...
+go test ./... -race
 ```
 
-PRs welcome. One panel per folder. Keep it fast.
+45 tests, 6 packages. CI enforces tests + docs with every PR. See [`TESTING.md`](./TESTING.md) for strategy.
+
+PRs welcome. One panel per folder. Keep it fast. Docs ship with code.
 
 ## License
 

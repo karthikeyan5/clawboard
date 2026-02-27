@@ -11,11 +11,13 @@ Every code change **must** include corresponding documentation updates. No excep
 - New panel → update AGENT-EXTEND.md with usage example
 - Contract change → update CONTRACTS.md
 - Architecture change → update architecture.yaml + ARCHITECTURE.md
+- Testing change → update TESTING.md
 - New convention → update CONVENTIONS.md
 - Breaking change → update BREAKING_CHANGES.md
 - README-visible feature → update README.md
 
 **A PR/commit without docs for user-facing changes is incomplete.**
+This is enforced by CI — see `.github/workflows/docs-check.yml`.
 
 ---
 
