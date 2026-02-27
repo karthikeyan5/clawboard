@@ -11,6 +11,113 @@ const path = require('path');
 const hooks = require('./hooks');
 const { validateManifest, validateData } = require('./validator');
 
+// ── BEGIN EXTRACTABLE VALIDATION (v3 → core/schema/panels.js) ──────────────
+
+/**
+ * Validate that manifest.json exists and is parseable
+ * @returns {{ manifest: object|null, error: string|null }}
+ */
+function validateManifestExists(panelPath, panelId) {
+  const manifestPath = path.join(panelPath, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    return {
+      manifest: null,
+      error: `Panel "${panelId}" — manifest.json not found\n` +
+        `  → Fix: Create ${path.join(panelPath, 'manifest.json')} with required fields\n` +
+        `  → See: core/panels/cpu/manifest.json for a complete example`
+    };
+  }
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    return { manifest, error: null };
+  } catch (err) {
+    return {
+      manifest: null,
+      error: `Panel "${panelId}" — manifest.json is not valid JSON: ${err.message}\n` +
+        `  → Fix: Check for trailing commas, missing quotes, or syntax errors\n` +
+        `  → See: core/panels/cpu/manifest.json for valid JSON structure`
+    };
+  }
+}
+
+/**
+ * Validate manifest schema fields against CONTRACTS.md requirements
+ * @returns {{ errors: string[], valid: boolean }}
+ */
+function validateManifestSchema(manifest, panelId) {
+  const result = validateManifest(manifest);
+  const errors = [];
+
+  for (const err of result.errors) {
+    const field = err.path || 'unknown';
+    if (err.message === 'Required field missing') {
+      errors.push(
+        `Panel "${panelId}" — manifest.json missing required field "${field}"\n` +
+        `  → Fix: Add "${field}" to your manifest.json\n` +
+        `  → See: core/panels/cpu/manifest.json for all required fields`
+      );
+    } else if (err.message.includes('Unsupported contract version')) {
+      errors.push(
+        `Panel "${panelId}" — unsupported contractVersion "${manifest.contractVersion}"\n` +
+        `  → Fix: Set "contractVersion": "1.0" (the only supported version)\n` +
+        `  → See: core/panels/cpu/manifest.json:2`
+      );
+    } else if (err.message.includes('Must be one of')) {
+      errors.push(
+        `Panel "${panelId}" — field "${field}" has invalid value "${manifest[field]}"\n` +
+        `  → Fix: ${err.message}\n` +
+        `  → See: core/panels/cpu/manifest.json`
+      );
+    } else {
+      errors.push(
+        `Panel "${panelId}" — manifest field "${field}": ${err.message}\n` +
+        `  → Fix: Check the value of "${field}" in your manifest.json\n` +
+        `  → See: core/panels/cpu/manifest.json`
+      );
+    }
+  }
+
+  return { errors, valid: result.valid };
+}
+
+/**
+ * Validate that manifest id matches folder name
+ * @returns {string|null} error message or null
+ */
+function validateIdMatchesFolder(manifest, panelId) {
+  if (manifest.id && manifest.id !== panelId) {
+    return `Panel "${panelId}" — manifest id "${manifest.id}" doesn't match folder name "${panelId}"\n` +
+      `  → Fix: Change "id" in manifest.json to "${panelId}", or rename the folder to "${manifest.id}"\n` +
+      `  → See: CONTRACTS.md — "{panel-id} = folder name = manifest id"`;
+  }
+  return null;
+}
+
+/**
+ * Validate that required panel files exist (api.js, ui.js)
+ * @returns {string[]} array of error messages
+ */
+function validateRequiredFiles(panelPath, panelId) {
+  const errors = [];
+  if (!fs.existsSync(path.join(panelPath, 'api.js'))) {
+    errors.push(
+      `Panel "${panelId}" — api.js not found\n` +
+      `  → Fix: Create ${path.join(panelPath, 'api.js')} exporting a handler function\n` +
+      `  → See: core/panels/cpu/api.js for the required pattern`
+    );
+  }
+  if (!fs.existsSync(path.join(panelPath, 'ui.js'))) {
+    errors.push(
+      `Panel "${panelId}" — ui.js not found\n` +
+      `  → Fix: Create ${path.join(panelPath, 'ui.js')} with a default Preact component export\n` +
+      `  → See: core/panels/cpu/ui.js for the required pattern`
+    );
+  }
+  return errors;
+}
+
+// ── END EXTRACTABLE VALIDATION ─────────────────────────────────────────────
+
 /**
  * Scan directory for panel folders
  */
@@ -27,35 +134,29 @@ function scanPanelDir(dir) {
 }
 
 /**
- * Load and validate manifest.json
+ * Load and validate manifest.json — uses extractable validation functions
  */
 function loadManifest(panelPath, panelId) {
-  const manifestPath = path.join(panelPath, 'manifest.json');
-  if (!fs.existsSync(manifestPath)) return { manifest: null, errors: ['manifest.json not found'] };
-  try {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    const result = validateManifest(manifest);
-    
-    // Check id matches folder name
-    if (manifest.id && manifest.id !== panelId) {
-      result.errors.push({ path: 'id', message: `ID "${manifest.id}" doesn't match folder "${panelId}"` });
-      result.valid = false;
-    }
-
-    // Check required files exist
-    if (!fs.existsSync(path.join(panelPath, 'api.js'))) {
-      result.errors.push({ path: 'api.js', message: 'api.js not found' });
-      result.valid = false;
-    }
-    if (!fs.existsSync(path.join(panelPath, 'ui.js'))) {
-      result.errors.push({ path: 'ui.js', message: 'ui.js not found' });
-      result.valid = false;
-    }
-
-    return { manifest, errors: result.errors, valid: result.valid };
-  } catch (err) {
-    return { manifest: null, errors: [`Failed to parse manifest: ${err.message}`] };
+  // Step 1: Check manifest exists and parses
+  const { manifest, error: parseError } = validateManifestExists(panelPath, panelId);
+  if (!manifest) {
+    return { manifest: null, errors: [parseError] };
   }
+
+  // Step 2: Validate schema
+  const { errors: schemaErrors, valid: schemaValid } = validateManifestSchema(manifest, panelId);
+
+  // Step 3: Validate id matches folder
+  const idError = validateIdMatchesFolder(manifest, panelId);
+  if (idError) schemaErrors.push(idError);
+
+  // Step 4: Validate required files
+  const fileErrors = validateRequiredFiles(panelPath, panelId);
+  schemaErrors.push(...fileErrors);
+
+  const valid = schemaValid && !idError && fileErrors.length === 0;
+
+  return { manifest, errors: schemaErrors, valid };
 }
 
 /**
@@ -283,5 +384,10 @@ module.exports = {
   registerPanelAPIs,
   buildPanelList,
   validateDataSchemas,
-  makeCls
+  makeCls,
+  // Exported for testing and future v3 extraction to core/schema/panels.js
+  validateManifestExists,
+  validateManifestSchema,
+  validateIdMatchesFolder,
+  validateRequiredFiles,
 };
