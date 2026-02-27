@@ -190,6 +190,11 @@
       window.location.href = '/dashboard';
     }
 
+    // Dev mode: auto-login via /auth/dev
+    fetch('/api/mode').then(r => r.json()).then(m => {
+      if (m.testMode) window.location.href = '/auth/dev';
+    }).catch(() => {});
+
     fetch('/api/config').then(r => r.json()).then(cfg => {
       const accent = cfg.accent || '#c9a84c';
       document.title = `${cfg.name} ${cfg.emoji || ''}`;
