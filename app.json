@@ -13,12 +13,5 @@
       "path": "~/.openclaw/workspace/claude-usage.json",
       "interval": "10s"
     }
-  },
-  "server": {
-    "package": "server"
-  },
-  "capabilities": {
-    "net": {},
-    "github.com/gorilla/websocket": {}
   }
 }

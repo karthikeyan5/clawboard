@@ -39,8 +39,7 @@ Velboard gives you a live dashboard instead. Open a tab. Everything's there.
 </tr>
 <tr>
 <td align="center">🤖 <strong>Models</strong></td>
-<td align="center">🌐 <strong>VelReach</strong></td>
-<td align="center" colspan="2">✨ <strong>Whatever you want next</strong></td>
+<td align="center" colspan="3">✨ <strong>Whatever you want next</strong></td>
 </tr>
 </table>
 
