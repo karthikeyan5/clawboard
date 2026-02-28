@@ -1,20 +1,23 @@
 <h1 align="center">🦞 Clawboard</h1>
 
 <p align="center">
-  <strong>Stop burning tokens on status checks.</strong><br>
-  A real-time dashboard for your AI agent — so you can <em>look</em> instead of <em>ask</em>.
+  <strong>Eyes for your AI agent.</strong><br>
+  Stop asking. Start seeing.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-c9a84c?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/built_with-Vel_⚡-ff6b35?style=flat-square" alt="Built with Vel">
-  <img src="https://img.shields.io/badge/panels-10-00ADD8?style=flat-square" alt="Panels">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
 </p>
 
 ---
 
-Every time you ask your agent *"what's my CPU?"* or *"how much quota left?"* — that's tokens spent reading a number. Clawboard gives your [OpenClaw](https://github.com/openclaw/openclaw) agent a live dashboard instead. Open a tab. See everything. Done.
+You have an AI agent on Telegram. You ask it things — *"what's my CPU at?"*, *"how much quota left?"*, *"any cron jobs failing?"*
+
+It answers. But that's a message, a wait, and tokens burned. Every. Single. Time.
+
+**Clawboard gives you a live dashboard instead.** Open a tab. Everything's right there — updating in real time. No more asking for numbers your screen could just show you.
 
 <p align="center">
   <img src="./screenshots/dashboard-mobile.png" alt="Clawboard Dashboard" width="600">
@@ -22,160 +25,64 @@ Every time you ask your agent *"what's my CPU?"* or *"how much quota left?"* —
 
 ---
 
-## What You Get
+## What's on your dashboard
 
 <table>
 <tr>
-<td align="center" width="25%">
-
-⚡ **CPU**<br>
-<sub>Live load with color bar</sub>
-
-</td>
-<td align="center" width="25%">
-
-🧠 **Memory**<br>
-<sub>Used / total GB</sub>
-
-</td>
-<td align="center" width="25%">
-
-💾 **Disk**<br>
-<sub>Usage per mount</sub>
-
-</td>
-<td align="center" width="25%">
-
-⏱ **Uptime**<br>
-<sub>System uptime + host</sub>
-
-</td>
+<td align="center" width="25%">⚡ <strong>CPU</strong></td>
+<td align="center" width="25%">🧠 <strong>Memory</strong></td>
+<td align="center" width="25%">💾 <strong>Disk</strong></td>
+<td align="center" width="25%">⏱ <strong>Uptime</strong></td>
 </tr>
 <tr>
-<td align="center">
-
-⚙️ **Processes**<br>
-<sub>Running, sleeping, total</sub>
-
-</td>
-<td align="center">
-
-🔧 **OpenClaw Status**<br>
-<sub>Version, sessions, channel</sub>
-
-</td>
-<td align="center">
-
-📊 **Claude Usage**<br>
-<sub>Quota + reset countdown</sub>
-
-</td>
-<td align="center">
-
-📅 **Cron Jobs**<br>
-<sub>List, run, enable/disable</sub>
-
-</td>
+<td align="center">⚙️ <strong>Processes</strong></td>
+<td align="center">🔧 <strong>OpenClaw</strong></td>
+<td align="center">📊 <strong>Claude Usage</strong></td>
+<td align="center">📅 <strong>Cron Jobs</strong></td>
 </tr>
 <tr>
-<td align="center">
-
-🤖 **Models**<br>
-<sub>Primary + fallback routing</sub>
-
-</td>
-<td align="center">
-
-🌐 **Browser Relay**<br>
-<sub>Remote browser control</sub>
-
-</td>
-<td align="center" colspan="2">
-
-✨ **Your panel here**<br>
-<sub>Two files. That's it.</sub>
-
-</td>
+<td align="center">🤖 <strong>Models</strong></td>
+<td align="center">🌐 <strong>Browser Relay</strong></td>
+<td align="center" colspan="2">✨ <strong>Whatever you want next</strong></td>
 </tr>
 </table>
 
-Everything updates live over WebSocket. No polling. No refresh.
+All live. All WebSocket. Nothing stale.
 
 ---
 
-## Two Files, Infinite Possibilities
+## It grows with you
 
-A panel is a folder with two files — a description and a UI component. That's the entire contract.
+These 10 panels are just what it ships with. Want to see your database performance? Your Docker containers? Your stock portfolio? Your CI pipeline?
 
-**`panel.json`**
-```json
-{
-  "name": "my-panel",
-  "title": "My Panel",
-  "icon": "📊",
-  "size": "half"
-}
-```
+**Tell your agent.** It builds the panel. The framework makes sure it works — streaming, layout, error handling, auth. All handled. You don't touch any of that.
 
-**`ui.js`**
-```javascript
-import { html } from '/js/lib/htm-preact.js';
-
-export default function Panel({ data }) {
-  return html`<div class="panel-content">
-    <h3>${data.value}</h3>
-  </div>`;
-}
-```
-
-Drop it in `panels/`. Restart. It's live — with streaming, layout, error handling, and auth already taken care of.
-
-Your agent can create these in seconds. You can create them yourself. Either way, the framework handles everything else.
-
-**Some ideas:**
-
-- Postgres query performance
-- API response times
-- Docker container status
-- CI/CD pipeline health
-- Smart home sensors
-- Stock portfolio
-- Anything you can pull data for
-
-The 10 panels that ship are a starting point. Your imagination is the limit.
+This is the part that matters: **you don't need to know how it works.** You just need to know what you want to see. Your agent handles the rest, and the framework makes sure it can't mess it up.
 
 ---
 
-## 🌐 Browser Relay
+## Browser Relay
 
-Your agent can control a real browser remotely. Pair with a 6-character code — your agent gets access. That's it.
+Your agent can see and control a real browser. Pair yours with a 6-character code and it gets access — no setup, no extensions.
 
-📖 **[How it works →](./RELAY.md)**
-
----
-
-## Why It Just Works
-
-Clawboard is built on **[Vel](https://github.com/essdee/vel)**, an AI-native Go framework designed so that agents can build things that don't break.
-
-- **Single Go binary** — no Node.js, no Python, no runtime deps
-- **Framework-guaranteed plumbing** — WebSocket streaming, auth, layout, error boundaries are all handled. Your agent only writes the parts that matter.
-- **Guardrails, not guidelines** — The framework doesn't *suggest* how to do things. It *enforces* correctness. AI writes two files, and it works. Every time.
-
-This means you can let your agent build panels, and you don't have to worry about whether it wired up the WebSocket correctly or forgot error handling. It can't get that wrong — the framework won't let it.
+📖 **[Learn more →](./RELAY.md)**
 
 ---
 
-## Quick Start
+## Built on Vel
+
+Clawboard runs on **[Vel](https://github.com/essdee/vel)** — an AI-native framework designed so agents build things that just work. Single binary. No dependencies. Framework-enforced correctness.
+
+Your agent writes the interesting parts. The framework guarantees everything else. That's why you can trust it to keep adding panels without things breaking.
+
+---
+
+## Get started
 
 ```bash
-# Clone into your Vel apps directory
 cd your-vel-app/apps/
 git clone https://github.com/karthikeyan5/clawboard.git
-
-# Build and run
-cd /path/to/vel
-./vel build && ./vel start
+cd /path/to/vel && ./vel build && ./vel start
 ```
 
 ---
@@ -187,5 +94,5 @@ cd /path/to/vel
 ---
 
 <p align="center">
-  <sub>Built for <a href="https://github.com/openclaw/openclaw">OpenClaw</a> agents. Made with 🦞 by an AI and its humans.</sub>
+  <sub>Part of the <a href="https://github.com/openclaw/openclaw">OpenClaw</a> ecosystem 🦞</sub>
 </p>
