@@ -1,31 +1,28 @@
-<h1 align="center">🦞 Clawboard</h1>
+<h1 align="center">Velboard</h1>
 
 <p align="center">
-  <strong>Eyes for your AI agent.</strong><br>
-  Stop asking. Start seeing.
+  <strong>The dashboard that builds itself.</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-c9a84c?style=flat-square" alt="Version">
-  <img src="https://img.shields.io/badge/built_with-Vel_⚡-ff6b35?style=flat-square" alt="Built with Vel">
+  <img src="https://img.shields.io/badge/Vel_app-⚡-ff6b35?style=flat-square" alt="Vel App">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
 </p>
 
 ---
 
-You have an AI agent on Telegram. You ask it things — *"what's my CPU at?"*, *"how much quota left?"*, *"any cron jobs failing?"*
+You have an AI agent. You ask it things — CPU, quota, cron status — and it answers. But that's a message, a wait, and tokens spent. Every time.
 
-It answers. But that's a message, a wait, and tokens burned. Every. Single. Time.
-
-**Clawboard gives you a live dashboard instead.** Open a tab. Everything's right there — updating in real time. No more asking for numbers your screen could just show you.
+Velboard gives you a live dashboard instead. Open a tab. Everything's there.
 
 <p align="center">
-  <img src="./screenshots/dashboard-mobile.png" alt="Clawboard Dashboard" width="600">
+  <img src="./screenshots/dashboard-mobile.png" alt="Velboard" width="600">
 </p>
 
 ---
 
-## What's on your dashboard
+## What you get on day one
 
 <table>
 <tr>
@@ -42,38 +39,58 @@ It answers. But that's a message, a wait, and tokens burned. Every. Single. Time
 </tr>
 <tr>
 <td align="center">🤖 <strong>Models</strong></td>
-<td align="center">🌐 <strong>Browser Relay</strong></td>
+<td align="center">🌐 <strong>VelReach</strong></td>
 <td align="center" colspan="2">✨ <strong>Whatever you want next</strong></td>
 </tr>
 </table>
 
 All live. All WebSocket. Nothing stale.
 
----
-
-## It grows with you
-
-These 10 panels are just what it ships with. Want to see your database performance? Your Docker containers? Your stock portfolio? Your CI pipeline?
-
-**Tell your agent.** It builds the panel. The framework makes sure it works — streaming, layout, error handling, auth. All handled. You don't touch any of that.
-
-This is the part that matters: **you don't need to know how it works.** You just need to know what you want to see. Your agent handles the rest, and the framework makes sure it can't mess it up.
+These 10 panels are just what it ships with. They're not the point.
 
 ---
 
-## Browser Relay
+## Stop waiting for PRs
 
-Your agent can see and control a real browser. Pair yours with a 6-character code and it gets access — no setup, no extensions.
+Every open source dashboard works the same way. You need a feature. You open an issue. Maybe someone builds it. Maybe they don't. You fork. You maintain a fork. Eventually you give up.
 
-📖 **[Learn more →](./RELAY.md)**
+**That era is over.**
+
+Need a panel for your database performance? Tell your agent. Docker container status? Tell your agent. API latency? Stock portfolio? Anything you can pull data for?
+
+Tell your agent. It builds the panel. It shows up on your dashboard.
+
+The framework underneath — [Vel](https://github.com/essdee/vel) — makes sure your agent can't break existing panels when it adds new ones. That's not a suggestion or a best practice. It's enforced. Structurally.
+
+You don't need to know how any of this works. You just need to know what you want to see.
+
+---
+
+## The last dashboard you'll ever install
+
+See a dashboard on GitHub with a feature you like? Send your agent a screenshot and say *"add this."*
+
+Have an idea in your head? Describe it.
+
+Your agent builds it. The framework makes sure it works. It appears on your dashboard.
+
+**These 10 panels took an afternoon. Yours take a message.**
+
+Keep your custom panels in your own repo if you want. Or contribute them back. The framework doesn't care — it discovers what's there and makes it work. No conflicts. No merge hell. No waiting on anyone.
+
+---
+
+## Your agent can act too
+
+Velboard ships with [VelReach](https://github.com/karthikeyan5/velreach) — your agent can use *your* browser. Pair with a 6-character code, watch it work in real time, no passwords shared. Your browser, your sessions, your agent's hands.
+
+📖 **[VelReach →](https://github.com/karthikeyan5/velreach)**
 
 ---
 
 ## Built on Vel
 
-Clawboard runs on **[Vel](https://github.com/essdee/vel)** — an AI-native framework designed so agents build things that just work. Single binary. No dependencies. Framework-enforced correctness.
-
-Your agent writes the interesting parts. The framework guarantees everything else. That's why you can trust it to keep adding panels without things breaking.
+[Vel](https://github.com/essdee/vel) is an AI-native Go framework. Single binary. Apps compose, they don't conflict. Your agent builds on it — the framework makes sure nothing breaks.
 
 ---
 
@@ -81,7 +98,7 @@ Your agent writes the interesting parts. The framework guarantees everything els
 
 ```bash
 cd your-vel-app/apps/
-git clone https://github.com/karthikeyan5/clawboard.git
+git clone https://github.com/karthikeyan5/velboard.git
 cd /path/to/vel && ./vel build && ./vel start
 ```
 
@@ -90,9 +107,3 @@ cd /path/to/vel && ./vel build && ./vel start
 ## License
 
 [MIT](./LICENSE)
-
----
-
-<p align="center">
-  <sub>Part of the <a href="https://github.com/openclaw/openclaw">OpenClaw</a> ecosystem 🦞</sub>
-</p>
