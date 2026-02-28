@@ -16,20 +16,28 @@ const ALL_PLATFORMS = ['linux', 'mac', 'windows'];
 const STATE_CONFIG = {
   disconnected: { color: '#666', icon: '⚫', label: 'Not connected' },
   connected:    { color: '#22c55e', icon: '🟢', label: 'Browser connected' },
-  agent_active: { color: '#0af', icon: '🤖', label: 'AI is using your browser' },
+  agent_active: { color: '#0af', icon: '🤖', label: 'AI controlling browser' },
 };
 
-const USE_CASES = [
-  { emoji: '🔍', title: 'Web Research', desc: 'Ask Ram to research competitors, find suppliers, or gather market data' },
-  { emoji: '📧', title: 'Email & Messages', desc: 'Check emails, draft replies, or scan for important updates' },
-  { emoji: '🛒', title: 'Shopping & Comparison', desc: '"Find the best price for X across 5 sites"' },
-  { emoji: '✈️', title: 'Travel & Booking', desc: 'Search flights, compare hotels, find the best deals' },
-  { emoji: '📊', title: 'Data Collection', desc: 'Scrape product listings, pull specs, build comparison sheets' },
-  { emoji: '📝', title: 'Form Filling', desc: 'Fill out repetitive forms, applications, or registrations' },
-];
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ' + (mins % 60) + 'm';
+  return Math.floor(hrs / 24) + 'd';
+}
+
+function truncUrl(url, max) {
+  if (!url) return '';
+  try { url = new URL(url).hostname + new URL(url).pathname; } catch(e) {}
+  return url.length > max ? url.slice(0, max) + '…' : url;
+}
 
 export default function BrowserRelayPanel({ data, error, connected, lastUpdate, api, config, cls }) {
-  const [status, setStatus] = useState({ state: 'disconnected' });
+  const [status, setStatus] = useState({ state: 'disconnected', targets: [] });
   const [showGuide, setShowGuide] = useState(false);
   const [showOther, setShowOther] = useState(false);
   const pollRef = useRef(null);
@@ -38,7 +46,15 @@ export default function BrowserRelayPanel({ data, error, connected, lastUpdate, 
     const poll = async () => {
       try {
         const resp = await fetch('/relay/status');
-        if (resp.ok) setStatus(await resp.json());
+        if (resp.ok) {
+          const s = await resp.json();
+          // Also try to get targets
+          try {
+            const tr = await fetch('/relay/json');
+            if (tr.ok) s.targets = await tr.json();
+          } catch(e) {}
+          setStatus(s);
+        }
       } catch(e) {}
     };
     poll();
@@ -49,54 +65,60 @@ export default function BrowserRelayPanel({ data, error, connected, lastUpdate, 
   const cfg = STATE_CONFIG[status.state] || STATE_CONFIG.disconnected;
   const platform = detectPlatform();
   const others = ALL_PLATFORMS.filter(p => p !== platform);
+  const targets = (status.targets || []).filter(t => t.type === 'page' && !t.url?.startsWith('devtools://'));
 
   const sinceText = status.connectedSince
-    ? 'since ' + new Date(status.connectedSince).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    ? timeAgo(status.connectedSince)
     : '';
 
   const s = {
     wrap: { padding: '20px', fontFamily: '-apple-system, system-ui, sans-serif', color: '#e0e0e0' },
-    // Title
     title: { fontSize: '15px', fontWeight: 700, color: '#e0e0e0', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' },
     subtitle: { fontSize: '12px', color: '#888', marginBottom: '16px', lineHeight: '1.5' },
-    // Status
     statusRow: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' },
     dot: { width: '10px', height: '10px', borderRadius: '50%', background: cfg.color, display: 'inline-block', boxShadow: status.state !== 'disconnected' ? `0 0 8px ${cfg.color}` : 'none', flexShrink: 0 },
     statusLabel: { fontSize: '14px', fontWeight: 600, color: cfg.color },
     meta: { fontSize: '11px', color: '#777', marginBottom: '14px' },
-    activeTab: { color: '#0af', fontSize: '12px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: '10px', padding: '6px 10px', background: 'rgba(0,170,255,0.08)', borderRadius: '6px', border: '1px solid rgba(0,170,255,0.15)' },
+    // Tabs list
+    tabsBox: { background: '#1a1a24', borderRadius: '8px', padding: '10px 12px', marginBottom: '14px', border: '1px solid #2a2a35' },
+    tabsTitle: { fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' },
+    tabRow: { display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', borderBottom: '1px solid #2a2a35' },
+    tabFavicon: { width: '14px', height: '14px', borderRadius: '2px', flexShrink: 0 },
+    tabTitle: { fontSize: '12px', color: '#ccc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+    tabUrl: { fontSize: '10px', color: '#666', fontFamily: 'monospace' },
+    // Stats row
+    statsRow: { display: 'flex', gap: '16px', marginBottom: '14px' },
+    stat: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+    statNum: { fontSize: '18px', fontWeight: 700, color: '#0af' },
+    statLabel: { fontSize: '10px', color: '#777', textTransform: 'uppercase', letterSpacing: '0.5px' },
     // Steps
     stepsBox: { background: '#1a1a24', borderRadius: '8px', padding: '14px', marginBottom: '14px', border: '1px solid #2a2a35' },
     stepRow: { display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'flex-start' },
     stepNum: { width: '22px', height: '22px', borderRadius: '6px', background: 'rgba(0,170,255,0.12)', color: '#0af', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
     stepText: { fontSize: '12px', color: '#bbb', lineHeight: '1.5', paddingTop: '2px' },
     stepBold: { color: '#e0e0e0', fontWeight: 600 },
-    // Buttons
     btn: { padding: '8px 16px', border: '1px solid #0af', borderRadius: '6px', background: 'rgba(0,170,255,0.1)', color: '#0af', cursor: 'pointer', fontSize: '12px', fontWeight: 600, transition: 'all 0.2s' },
     btnRow: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginBottom: '14px' },
-    // Guide toggle
     guideToggle: { color: '#0af', fontSize: '12px', cursor: 'pointer', opacity: 0.8, userSelect: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' },
-    // Use cases
     useCaseGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' },
     useCaseCard: { background: '#1a1a24', borderRadius: '8px', padding: '10px 12px', border: '1px solid #2a2a35' },
     useCaseEmoji: { fontSize: '16px', marginBottom: '4px' },
     useCaseTitle: { fontSize: '12px', fontWeight: 600, color: '#ddd', marginBottom: '3px' },
     useCaseDesc: { fontSize: '11px', color: '#888', lineHeight: '1.4' },
-    // Other platforms
     otherLink: { color: '#0af', fontSize: '11px', cursor: 'pointer', textDecoration: 'none', opacity: 0.6 },
-    divider: { height: '1px', background: '#2a2a35', margin: '14px 0' },
-    section: { marginBottom: '14px' },
   };
+
+  const USE_CASES = [
+    { emoji: '🔍', title: 'Web Research', desc: 'Research competitors, suppliers, market data' },
+    { emoji: '📧', title: 'Email & Messages', desc: 'Check emails, draft replies, scan updates' },
+    { emoji: '🛒', title: 'Shopping', desc: 'Compare prices across sites' },
+    { emoji: '📊', title: 'Data Collection', desc: 'Scrape listings, pull specs, build sheets' },
+  ];
 
   return html`
     <div style=${s.wrap}>
-      <!-- Title -->
-      <div style=${s.title}>
-        🌐 Browser Remote Control
-      </div>
-      <div style=${s.subtitle}>
-        Let your AI control a browser on your computer — from anywhere.
-      </div>
+      <div style=${s.title}>🌐 Browser Remote Control</div>
+      <div style=${s.subtitle}>Let your AI control a browser on your computer — from anywhere.</div>
 
       <!-- Status -->
       <div style=${s.statusRow}>
@@ -104,11 +126,41 @@ export default function BrowserRelayPanel({ data, error, connected, lastUpdate, 
         <span style=${s.statusLabel}>${cfg.label}</span>
       </div>
 
-      ${sinceText && html`<div style=${s.meta}>${sinceText}${status.msgCount ? ` · ${status.msgCount} actions` : ''}</div>`}
-      ${status.activeTab && html`<div style=${s.activeTab}>🤖 Working on: ${status.activeTab}</div>`}
+      ${status.state !== 'disconnected' && html`
+        <!-- Stats -->
+        <div style=${s.statsRow}>
+          <div style=${s.stat}>
+            <div style=${s.statNum}>${targets.length}</div>
+            <div style=${s.statLabel}>Tabs</div>
+          </div>
+          <div style=${s.stat}>
+            <div style=${s.statNum}>${status.msgCount || 0}</div>
+            <div style=${s.statLabel}>Actions</div>
+          </div>
+          <div style=${s.stat}>
+            <div style=${s.statNum}>${sinceText || '—'}</div>
+            <div style=${s.statLabel}>Uptime</div>
+          </div>
+        </div>
+
+        <!-- Tabs list -->
+        ${targets.length > 0 && html`
+          <div style=${s.tabsBox}>
+            <div style=${s.tabsTitle}>Open Tabs (${targets.length})</div>
+            ${targets.map((t, i) => html`
+              <div style=${{ ...s.tabRow, borderBottom: i === targets.length - 1 ? 'none' : s.tabRow.borderBottom }}>
+                <img style=${s.tabFavicon} src=${'https://www.google.com/s2/favicons?domain=' + (t.url ? new URL(t.url).hostname : '') + '&sz=16'} onerror=${e => e.target.style.display='none'} />
+                <div style=${{ flex: 1, overflow: 'hidden' }}>
+                  <div style=${s.tabTitle}>${t.title || 'Untitled'}</div>
+                  <div style=${s.tabUrl}>${truncUrl(t.url, 50)}</div>
+                </div>
+              </div>
+            `)}
+          </div>
+        `}
+      `}
 
       ${status.state === 'disconnected' && html`
-        <!-- How it works steps -->
         <div style=${s.stepsBox}>
           <div style=${s.stepRow}>
             <div style=${s.stepNum}>1</div>
@@ -116,11 +168,11 @@ export default function BrowserRelayPanel({ data, error, connected, lastUpdate, 
           </div>
           <div style=${s.stepRow}>
             <div style=${s.stepNum}>2</div>
-            <div style=${s.stepText}><span style=${s.stepBold}>Pair</span> — send the 6-digit code shown in Chrome to Ram on Telegram</div>
+            <div style=${s.stepText}><span style=${s.stepBold}>Pair</span> — send the 6-digit code to Ram on Telegram</div>
           </div>
           <div style=${{ ...s.stepRow, marginBottom: 0 }}>
             <div style=${s.stepNum}>3</div>
-            <div style=${s.stepText}><span style=${s.stepBold}>Done!</span> Your AI can now control the browser remotely</div>
+            <div style=${s.stepText}><span style=${s.stepBold}>Done!</span> AI can now control the browser remotely</div>
           </div>
         </div>
       `}
@@ -152,7 +204,6 @@ export default function BrowserRelayPanel({ data, error, connected, lastUpdate, 
         </div>
       `}
 
-      <!-- Learn more / Use cases -->
       <div>
         <span style=${s.guideToggle} onclick=${() => setShowGuide(!showGuide)}>
           ${showGuide ? '▾' : '▸'} What can I do with this?
