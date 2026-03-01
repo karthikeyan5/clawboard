@@ -5,27 +5,56 @@
   "description": "Raw output from openclaw status command",
   "version": "1.0.0",
   "author": "core",
-  "position": 90,
-  "size": "full",
+  "position": 46,
+  "size": "half",
   "refreshMs": 10000,
   "requires": [],
-  "capabilities": ["fetch"],
+  "capabilities": [
+    "fetch"
+  ],
   "dataSchema": {
     "type": "object",
     "properties": {
-      "online": { "type": "boolean" },
-      "version": { "type": "string" },
-      "os": { "type": "string" },
-      "channel": { "type": "object" },
-      "heartbeat": { "type": "string" },
-      "sessions": { "type": "string" },
-      "gateway": { "type": "string" },
-      "agents": { "type": "string" },
-      "memory": { "type": "string" },
-      "security": { "type": ["object", "null"] },
-      "error": { "type": "string" }
+      "online": {
+        "type": "boolean"
+      },
+      "version": {
+        "type": "string"
+      },
+      "os": {
+        "type": "string"
+      },
+      "channel": {
+        "type": "object"
+      },
+      "heartbeat": {
+        "type": "string"
+      },
+      "sessions": {
+        "type": "string"
+      },
+      "gateway": {
+        "type": "string"
+      },
+      "agents": {
+        "type": "string"
+      },
+      "memory": {
+        "type": "string"
+      },
+      "security": {
+        "type": [
+          "object",
+          "null"
+        ]
+      },
+      "error": {
+        "type": "string"
+      }
     },
-    "required": ["online"]
+    "required": [
+      "online"
+    ]
   },
   "rateLimit": {
     "windowMs": 60000,

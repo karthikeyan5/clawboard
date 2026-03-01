@@ -12,6 +12,11 @@
       "type": "file",
       "path": "~/.openclaw/workspace/claude-usage.json",
       "interval": "10s"
+    },
+    "sessions": {
+      "type": "file",
+      "path": "~/.openclaw/workspace/sessions-summary.json",
+      "interval": "30s"
     }
   }
 }

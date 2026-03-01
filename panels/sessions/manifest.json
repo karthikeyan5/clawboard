@@ -1,0 +1,29 @@
+{
+  "id": "sessions",
+  "contractVersion": "1.0",
+  "name": "Sessions",
+  "description": "Active OpenClaw sessions with model and token usage",
+  "version": "1.0.0",
+  "author": "core",
+  "position": 55,
+  "size": "full",
+  "refreshMs": 30000,
+  "dataSource": "sessions",
+  "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "total": { "type": "integer" },
+      "active": { "type": "integer" },
+      "byKind": { "type": "object" },
+      "byModel": { "type": "object" },
+      "recent": { "type": "array" }
+    }
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
+  "config": {}
+}

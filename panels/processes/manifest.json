@@ -5,20 +5,34 @@
   "description": "Total, running, sleeping process counts and OS info",
   "version": "1.0.0",
   "author": "core",
-  "position": 50,
-  "size": "full",
+  "position": 45,
+  "size": "half",
   "refreshMs": 2000,
   "requires": [],
-  "capabilities": ["fetch"],
+  "capabilities": [
+    "fetch"
+  ],
   "dataSchema": {
     "type": "object",
     "properties": {
-      "total": { "type": "integer" },
-      "running": { "type": "integer" },
-      "sleeping": { "type": "integer" },
-      "os": { "type": "string" }
+      "total": {
+        "type": "integer"
+      },
+      "running": {
+        "type": "integer"
+      },
+      "sleeping": {
+        "type": "integer"
+      },
+      "os": {
+        "type": "string"
+      }
     },
-    "required": ["total", "running", "sleeping"]
+    "required": [
+      "total",
+      "running",
+      "sleeping"
+    ]
   },
   "rateLimit": {
     "windowMs": 60000,
