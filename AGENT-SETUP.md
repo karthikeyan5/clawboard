@@ -145,7 +145,7 @@ ExecStart=<install-dir>/vel
 EnvironmentFile=<install-dir>/.env
 Restart=always
 RestartSec=5
-User=<username>  # use the appropriate system user
+User=<username>  # IMPORTANT: must be the same user that runs OpenClaw (~ paths in app.json expand to this user's home dir)
 
 [Install]
 WantedBy=multi-user.target
@@ -326,3 +326,4 @@ sudo systemctl restart vel
 - **Claude usage empty** → verify `claude-usage.json` exists in workspace
 - **OpenClaw status empty** → verify `openclaw` CLI is in PATH
 - **Auth not working** → verify BOT_TOKEN is set and Telegram webhook domain matches
+- **Data sources "waiting for file"** → the systemd `User=` must match the user whose home directory has `~/.openclaw/`. If the service runs as `root` but files are under `/home/claw/`, tilde expansion points to `/root/` instead. Fix: set `User=` to the correct user
