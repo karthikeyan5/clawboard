@@ -145,7 +145,8 @@ ExecStart=<install-dir>/vel
 EnvironmentFile=<install-dir>/.env
 Restart=always
 RestartSec=5
-User=<username>  # IMPORTANT: must be the same user that runs OpenClaw (~ paths in app.json expand to this user's home dir)
+User=<username>
+Environment=HOME=/home/<username>  # REQUIRED: systemd doesn't always set HOME correctly; ~ paths in app.json depend on this
 
 [Install]
 WantedBy=multi-user.target
