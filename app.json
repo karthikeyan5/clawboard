@@ -33,5 +33,6 @@
     "sessions",
     "crons",
     "models"
-  ]
+  ],
+  "landingPage": "pages/landing"
 }
