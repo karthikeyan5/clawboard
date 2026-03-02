@@ -122,7 +122,7 @@ See [`ROADMAP.md`](./ROADMAP.md) for planned panels and features.
 
 ## See Also
 
-- **[VelBrowser](https://github.com/karthikeyan5/velbrowser)** — Give your agent browser control. Pair with a code, watch it work. Another Vel app.
+- **[VelBridge](https://github.com/karthikeyan5/velbridge)** — Give your agent browser control. Pair with a code, watch it work. Another Vel app.
 
 ## Framework
 
