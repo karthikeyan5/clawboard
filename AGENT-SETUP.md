@@ -60,11 +60,17 @@ Edit `config.json` with the user's details:
 }
 ```
 
-Set up the bot token:
+Set up the bot token and fetch the bot username (don't guess it):
 
 ```bash
 echo "BOT_TOKEN=<token>" > <install-dir>/.env
+
+# Get the actual bot username from Telegram API
+BOT_USERNAME=$(curl -s "https://api.telegram.org/bot<token>/getMe" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['username'])")
+echo "Bot username: $BOT_USERNAME"
 ```
+
+Use `$BOT_USERNAME` in the config below — do NOT guess the username format.
 
 ---
 
