@@ -5,3 +5,14 @@ Thumbs.db
 # Secrets
 .cookie-secret
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+
+# Logs
+*.log
