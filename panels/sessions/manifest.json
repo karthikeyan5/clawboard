@@ -7,8 +7,7 @@
   "author": "core",
   "position": 55,
   "size": "full",
-  "refreshMs": 30000,
-  "dataSource": "sessions",
+  "refreshMs": 2000,
   "requires": [],
   "capabilities": ["fetch"],
   "dataSchema": {
@@ -16,6 +15,7 @@
     "properties": {
       "total": { "type": "integer" },
       "active": { "type": "integer" },
+      "working": { "type": "integer" },
       "byKind": { "type": "object" },
       "byModel": { "type": "object" },
       "recent": { "type": "array" }

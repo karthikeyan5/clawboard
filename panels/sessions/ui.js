@@ -14,6 +14,16 @@ const fmtAge = (mins) => {
   return Math.floor(mins / 1440) + 'd';
 };
 
+const fmtFetchedAt = (ts) => {
+  if (!ts) return '';
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ' + (mins % 60) + 'm ago';
+  return new Date(ts).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+};
+
 const kindColor = {
   main: 'var(--accent)',
   cron: 'var(--green)',
@@ -40,6 +50,35 @@ const getCurrentUserId = () => {
   return null;
 };
 
+// Pulse animation injected once
+const PulseStyle = () => html`<style>
+  @keyframes vel-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .vel-pulse-dot { animation: vel-pulse 1.5s ease-in-out infinite; }
+</style>`;
+
+function ActivityDot({ s }) {
+  if (s.working === true) {
+    return html`<span
+      class="vel-pulse-dot"
+      style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0"
+      title=${s.kind + ' — working'}
+    ></span>`;
+  }
+  if (s.ageMins < 5) {
+    return html`<span
+      style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#eab308;flex-shrink:0"
+      title=${s.kind + ' — recent'}
+    ></span>`;
+  }
+  return html`<span
+    style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);flex-shrink:0"
+    title=${s.kind}
+  ></span>`;
+}
+
 function SessionRow({ s }) {
   const pct = s.contextPct || 0;
   const hasCtx = s.usedTokens > 0 || s.totalTokens > 0;
@@ -56,9 +95,9 @@ function SessionRow({ s }) {
 
   return html`
     <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);opacity:${s.active ? 1 : 0.5}">
-      <!-- Top row: icon, label, age -->
+      <!-- Top row: activity dot, label, age -->
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:${kindColor[s.kind] || 'var(--text-dim)'};font-size:10px;flex-shrink:0;width:14px;text-align:center" title=${s.kind}>${kindIcon[s.kind] || '○'}</span>
+        <${ActivityDot} s=${s} />
         <div style="flex:1;min-width:0">
           <div style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.label}</div>
           ${s.userLabel && s.kind !== 'cron' && html`
@@ -70,7 +109,7 @@ function SessionRow({ s }) {
       </div>
       <!-- Info chips: provider, chatType, model -->
       ${chips.length > 0 && html`
-        <div style="display:flex;gap:4px;margin-top:3px;padding-left:22px;flex-wrap:wrap">
+        <div style="display:flex;gap:4px;margin-top:3px;padding-left:16px;flex-wrap:wrap">
           ${chips.map(c => html`
             <span style="font-size:8px;padding:1px 5px;border-radius:6px;background:rgba(255,255,255,0.05);color:${c.color};font-family:'JetBrains Mono',monospace">${c.text}</span>
           `)}
@@ -78,7 +117,7 @@ function SessionRow({ s }) {
       `}
       <!-- Context bar -->
       ${hasCtx && html`
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-left:22px">
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-left:16px">
           <div style="flex:1;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">
             <div style="height:100%;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
           </div>
@@ -115,14 +154,23 @@ function CollapsibleGroup({ title, icon, count, sessions, defaultOpen }) {
   `;
 }
 
-export default function SessionsPanel({ data, error, connected, cls }) {
+export default function SessionsPanel({ data, error, connected, api, cls }) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await api.fetch('/api/sessions/refresh', { method: 'POST' });
+    } catch {}
+    setTimeout(() => setRefreshing(false), 2000);
+  };
+
   if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
   if (!data || data.error) return html`<div style="color:var(--text-dim);font-size:12px;line-height:1.5">
-    Sessions data not found — run <code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px;font-size:11px">sessions-gen.sh</code> and add it to crontab.
-    See VelClawBoard <strong>AGENT-SETUP.md Step 4</strong>.
+    Sessions data not available. The sessions panel is now served directly by the Go backend.
   </div>`;
 
-  const { total, active, byKind, byModel, recent } = data;
+  const { total, active, working, byKind, byModel, recent } = data;
   const currentUserId = useMemo(() => getCurrentUserId(), []);
 
   // Group sessions: current user's sessions first (uncollapsed), then rest (collapsed)
@@ -160,6 +208,7 @@ export default function SessionsPanel({ data, error, connected, cls }) {
 
   return html`
     <div class=${cls('wrap')}>
+      <${PulseStyle} />
       ${!connected && html`<div class=${cls('stale')}>⚠ Stale</div>`}
 
       <!-- Header -->
@@ -167,8 +216,18 @@ export default function SessionsPanel({ data, error, connected, cls }) {
         <div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);font-weight:600">Sessions</span>
           <span style="font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace">${active} active</span>
+          ${working > 0 && html`<span style="font-size:10px;color:#22c55e;font-family:'JetBrains Mono',monospace">${working} working</span>`}
           <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace">/ ${total}</span>
         </div>
+        <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:4px">
+          ${data ? fmtFetchedAt(data.ts) : ''}
+          <button
+            onClick=${handleRefresh}
+            style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--text);opacity:${refreshing ? 0.3 : 0.7};padding:2px 4px;transition:opacity 0.2s"
+            disabled=${refreshing}
+            title="Refresh sessions"
+          >↻</button>
+        </span>
       </div>
 
       <!-- Agent + Model badges -->
@@ -178,7 +237,7 @@ export default function SessionsPanel({ data, error, connected, cls }) {
             ${agent} <span style="color:var(--text)">${count}</span>
           </span>
         `)}
-        ${Object.entries(byModel).map(([model, count]) => html`
+        ${byModel && Object.entries(byModel).map(([model, count]) => html`
           <span style="font-size:9px;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--text-dim);font-family:'JetBrains Mono',monospace">
             ${model.replace('claude-', '')} <span style="color:var(--text)">${count}</span>
           </span>
@@ -230,7 +289,7 @@ export default function SessionsPanel({ data, error, connected, cls }) {
 
       <!-- Kind summary -->
       <div style="display:flex;gap:12px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)">
-        ${Object.entries(byKind).filter(([,v]) => v > 0).map(([kind, count]) => html`
+        ${byKind && Object.entries(byKind).filter(([,v]) => v > 0).map(([kind, count]) => html`
           <span style="font-size:9px;color:${kindColor[kind] || 'var(--text-dim)'};font-family:'JetBrains Mono',monospace">
             ${kindIcon[kind] || '○'} ${kind} ${count}
           </span>
