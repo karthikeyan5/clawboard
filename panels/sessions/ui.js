@@ -49,6 +49,7 @@ function SessionRow({ s }) {
 
   // Build info chips
   const chips = [];
+  if (s.agentId && s.agentId !== 'main') chips.push({ text: s.agentId, color: '#f59e0b' });
   if (s.provider) chips.push({ text: s.provider, color: '#3b82f6' });
   if (s.chatType) chips.push({ text: s.chatType, color: 'var(--text-dim)' });
   if (modelShort) chips.push({ text: modelShort, color: '#8b5cf6' });
@@ -135,8 +136,10 @@ export default function SessionsPanel({ data, error, connected, cls }) {
     for (const s of recent) {
       const isMySession = currentUserId && s.telegramId === currentUserId;
       const isMyDirect = isMySession && (s.kind === 'main' || (s.kind === 'other' && s.key.includes(':telegram:')));
+      // Topic sessions are team sessions (show under "Your Sessions")
+      const isTeamSession = s.key.includes(':telegram:group:') && s.key.includes(':topic:');
 
-      if (isMyDirect) {
+      if (isMyDirect || isTeamSession) {
         myDirect.push(s);
       } else if (s.kind === 'subagent') {
         mySubagents.push(s);
@@ -168,8 +171,13 @@ export default function SessionsPanel({ data, error, connected, cls }) {
         </div>
       </div>
 
-      <!-- Model badges -->
+      <!-- Agent + Model badges -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        ${data.byAgent && Object.entries(data.byAgent).map(([agent, count]) => html`
+          <span style="font-size:9px;padding:2px 8px;border-radius:8px;background:rgba(245,158,11,0.1);color:#f59e0b;font-family:'JetBrains Mono',monospace">
+            ${agent} <span style="color:var(--text)">${count}</span>
+          </span>
+        `)}
         ${Object.entries(byModel).map(([model, count]) => html`
           <span style="font-size:9px;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--text-dim);font-family:'JetBrains Mono',monospace">
             ${model.replace('claude-', '')} <span style="color:var(--text)">${count}</span>
