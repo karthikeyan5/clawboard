@@ -79,6 +79,60 @@ function ActivityDot({ s }) {
   ></span>`;
 }
 
+function HeartbeatLine({ heartbeat, color, opacity }) {
+  // heartbeat is an array of 0s and 1s, oldest first
+  if (!heartbeat || heartbeat.length < 2) {
+    // Flat line
+    return html`<svg viewBox="0 0 200 24" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+      <line x1="0" y1="20" x2="200" y2="20" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+    </svg>`;
+  }
+
+  const len = heartbeat.length;
+  const w = 200;
+  const h = 24;
+  const baseline = 20;
+  const spikeHeight = 16; // how tall spikes go (baseline - spikeHeight = 4)
+
+  // Build SVG path points
+  // Each tick gets a horizontal segment. Active ticks get a sharp spike.
+  const step = w / Math.max(len - 1, 1);
+  let pathPoints = [];
+
+  for (let i = 0; i < len; i++) {
+    const x = Math.round(i * step * 10) / 10;
+    if (heartbeat[i]) {
+      // Spike: go up sharply and come back down
+      // Random-ish height variation for visual interest
+      const spikeH = spikeHeight * (0.6 + Math.sin(i * 2.7) * 0.4);
+      const peakY = baseline - spikeH;
+      pathPoints.push(`${x},${baseline}`);
+      pathPoints.push(`${x + step * 0.3},${peakY}`);
+      pathPoints.push(`${x + step * 0.6},${baseline}`);
+    } else {
+      pathPoints.push(`${x},${baseline}`);
+    }
+  }
+
+  const linePath = 'M' + pathPoints.join(' L');
+  const fillPath = linePath + ` L${w},${h} L0,${h} Z`;
+
+  // Gradient: transparent on left (old), colored on right (recent)
+  const gradId = 'hb-' + Math.random().toString(36).slice(2, 8);
+
+  return html`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+    <defs>
+      <linearGradient id=${gradId} x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color=${color} stop-opacity="0" />
+        <stop offset="70%" stop-color=${color} stop-opacity="0.15" />
+        <stop offset="100%" stop-color=${color} stop-opacity="0.3" />
+      </linearGradient>
+    </defs>
+    <path d=${fillPath} fill=${'url(#' + gradId + ')'} />
+    <path d=${linePath} fill="none" stroke=${color} stroke-width="1.5" stroke-opacity=${opacity || 0.7} />
+  </svg>`;
+}
+
 function SessionRow({ s }) {
   const pct = s.contextPct || 0;
   const hasCtx = s.usedTokens > 0 || s.totalTokens > 0;
@@ -115,17 +169,22 @@ function SessionRow({ s }) {
           `)}
         </div>
       `}
-      <!-- Context bar -->
-      ${hasCtx && html`
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-left:16px">
-          <div style="flex:1;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">
-            <div style="height:100%;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
-          </div>
-          <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right">
-            ${fmtTokens(used)}/${fmtTokens(maxCtx)} (${Math.round(pct)}%)
-          </span>
+      <!-- Heartbeat + Context bar -->
+      <div style="position:relative;margin-top:6px;padding-left:16px;display:flex;align-items:center;gap:8px">
+        <div style="flex:1;height:24px;position:relative;overflow:hidden;border-radius:4px;background:rgba(255,255,255,0.02)">
+          <${HeartbeatLine}
+            heartbeat=${s.heartbeat}
+            color=${s.working ? 'var(--green)' : s.ageMins < 5 ? '#eab308' : 'rgba(255,255,255,0.15)'}
+            opacity=${s.working ? 0.8 : s.ageMins < 5 ? 0.5 : 0.2}
+          />
+          ${hasCtx && html`
+            <div style="position:absolute;bottom:0;left:0;height:3px;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
+          `}
         </div>
-      `}
+        <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right">
+          ${fmtTokens(used)}/${fmtTokens(maxCtx)} (${Math.round(pct)}%)
+        </span>
+      </div>
     </div>
   `;
 }
