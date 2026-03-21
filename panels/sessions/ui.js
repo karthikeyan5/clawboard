@@ -57,11 +57,18 @@ const PulseStyle = () => html`<style>
     50% { opacity: 0.3; }
   }
   .vel-pulse-dot { animation: vel-pulse 1.5s ease-in-out infinite; }
-  @keyframes vel-heartbeat-scroll {
-    from { transform: translateX(-1.7%); }
-    to { transform: translateX(0); }
+  .vel-dot {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #22c55e;
+    top: 50%;
+    margin-top: -2.5px;
+    box-shadow: 0 0 4px rgba(34,197,94,0.5), 0 0 8px rgba(34,197,94,0.25);
+    pointer-events: none;
+    transition: right 2s linear, opacity 2s linear, transform 2s linear;
   }
-  .vel-heartbeat-svg { animation: vel-heartbeat-scroll 2s linear; }
 </style>`;
 
 function ActivityDot({ s }) {
@@ -84,60 +91,38 @@ function ActivityDot({ s }) {
   ></span>`;
 }
 
-function HeartbeatLine({ heartbeat, color, opacity }) {
-  // heartbeat is an array of 0s and 1s, oldest first
-  const svgKey = heartbeat ? heartbeat.slice(-3).join('') + heartbeat.length : '0';
-
-  if (!heartbeat || heartbeat.length < 2) {
-    // Flat line
-    return html`<svg key=${svgKey} class="vel-heartbeat-svg" viewBox="0 0 200 16" preserveAspectRatio="none" style="width:100%;height:100%;display:block;position:absolute;top:0;left:0">
-      <line x1="0" y1="14" x2="200" y2="14" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
-    </svg>`;
-  }
+function DotTrail({ heartbeat }) {
+  // heartbeat is an array of 0s and 1s, oldest→newest
+  // Each entry represents a 2-second tick
+  // We position dots along the track: newest on right (100%), oldest on left (0%)
+  if (!heartbeat || heartbeat.length === 0) return null;
 
   const len = heartbeat.length;
-  const w = 200;
-  const h = 16;
-  const baseline = 14;
-  const spikeHeight = 12; // how tall spikes go (baseline - spikeHeight = 2)
-
-  // Build SVG path points
-  // Each tick gets a horizontal segment. Active ticks get a sharp spike.
-  const step = w / Math.max(len - 1, 1);
-  let pathPoints = [];
+  const dots = [];
 
   for (let i = 0; i < len; i++) {
-    const x = Math.round(i * step * 10) / 10;
-    if (heartbeat[i]) {
-      // Spike: go up sharply and come back down
-      // Random-ish height variation for visual interest
-      const spikeH = spikeHeight * (0.6 + Math.sin(i * 2.7) * 0.4);
-      const peakY = baseline - spikeH;
-      pathPoints.push(`${x},${baseline}`);
-      pathPoints.push(`${x + step * 0.3},${peakY}`);
-      pathPoints.push(`${x + step * 0.6},${baseline}`);
-    } else {
-      pathPoints.push(`${x},${baseline}`);
-    }
+    if (!heartbeat[i]) continue; // skip inactive ticks
+
+    // Position: newest (last) = rightmost, oldest (first) = leftmost
+    const age = len - 1 - i; // 0 = newest, len-1 = oldest
+    const rightPct = (age / 60) * 100; // percentage from right edge
+
+    // Opacity and scale based on age
+    const progress = age / 60; // 0 = newest, 1 = oldest
+    const opacity = Math.max(0, 1 - progress * 1.3);
+    const scale = Math.max(0.4, 1 - progress * 0.6);
+
+    if (opacity <= 0) continue; // skip invisible dots
+
+    dots.push(html`
+      <div
+        class="vel-dot"
+        style="right:${rightPct}%;opacity:${opacity};transform:scale(${scale})"
+      />
+    `);
   }
 
-  const linePath = 'M' + pathPoints.join(' L');
-  const fillPath = linePath + ` L${w},${h} L0,${h} Z`;
-
-  // Gradient: transparent on left (old), colored on right (recent)
-  const gradId = 'hb-' + Math.random().toString(36).slice(2, 8);
-
-  return html`<svg key=${svgKey} class="vel-heartbeat-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:100%;display:block;position:absolute;top:0;left:0">
-    <defs>
-      <linearGradient id=${gradId} x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color=${color} stop-opacity="0" />
-        <stop offset="70%" stop-color=${color} stop-opacity="0.15" />
-        <stop offset="100%" stop-color=${color} stop-opacity="0.3" />
-      </linearGradient>
-    </defs>
-    <path d=${fillPath} fill=${'url(#' + gradId + ')'} />
-    <path d=${linePath} fill="none" stroke=${color} stroke-width="1.5" stroke-opacity=${opacity || 0.7} />
-  </svg>`;
+  return dots;
 }
 
 function SessionRow({ s }) {
@@ -156,9 +141,8 @@ function SessionRow({ s }) {
 
   return html`
     <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);opacity:${s.active ? 1 : 0.5}">
-      <!-- Top row: activity dot, label, age -->
+      <!-- Top row: label, age -->
       <div style="display:flex;align-items:center;gap:8px">
-        <${ActivityDot} s=${s} />
         <div style="flex:1;min-width:0">
           <div style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.label}</div>
           ${s.userLabel && s.kind !== 'cron' && html`
@@ -176,24 +160,15 @@ function SessionRow({ s }) {
           `)}
         </div>
       `}
-      <!-- Heartbeat + Context bar -->
+      <!-- Dot trail + Context bar -->
       <div style="position:relative;margin-top:4px;padding-left:16px;display:flex;align-items:center;gap:8px">
-        <!-- Heartbeat SVG fills the background absolutely -->
-        <div style="position:absolute;top:0;left:16px;right:68px;bottom:0;overflow:hidden;border-radius:2px">
-          <${HeartbeatLine}
-            heartbeat=${s.heartbeat}
-            color=${s.working ? 'var(--green)' : s.ageMins < 5 ? '#eab308' : 'rgba(255,255,255,0.15)'}
-            opacity=${s.working ? 0.4 : s.ageMins < 5 ? 0.2 : 0.1}
-          />
-        </div>
-        <!-- Context bar in normal flow -->
-        <div style="flex:1;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;position:relative;z-index:1">
+        <div style="flex:1;height:6px;position:relative;overflow:hidden;border-radius:3px;background:rgba(255,255,255,0.03)">
+          <${DotTrail} heartbeat=${s.heartbeat} />
           ${hasCtx && html`
-            <div style="height:100%;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
+            <div style="position:absolute;bottom:0;left:0;height:2px;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:1px;opacity:0.4;transition:width 0.3s"></div>
           `}
         </div>
-        <!-- Token label with text shadow -->
-        <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right;text-shadow:0 0 4px rgba(0,0,0,0.8),0 0 8px rgba(0,0,0,0.6);position:relative;z-index:1">
+        <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right;position:relative;z-index:1">
           ${fmtTokens(used)}/${fmtTokens(maxCtx)} (${Math.round(pct)}%)
         </span>
       </div>
