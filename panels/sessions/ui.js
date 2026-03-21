@@ -57,6 +57,11 @@ const PulseStyle = () => html`<style>
     50% { opacity: 0.3; }
   }
   .vel-pulse-dot { animation: vel-pulse 1.5s ease-in-out infinite; }
+  @keyframes vel-heartbeat-scroll {
+    from { transform: translateX(-1.7%); }
+    to { transform: translateX(0); }
+  }
+  .vel-heartbeat-svg { animation: vel-heartbeat-scroll 2s linear; }
 </style>`;
 
 function ActivityDot({ s }) {
@@ -81,18 +86,20 @@ function ActivityDot({ s }) {
 
 function HeartbeatLine({ heartbeat, color, opacity }) {
   // heartbeat is an array of 0s and 1s, oldest first
+  const svgKey = heartbeat ? heartbeat.slice(-3).join('') + heartbeat.length : '0';
+
   if (!heartbeat || heartbeat.length < 2) {
     // Flat line
-    return html`<svg viewBox="0 0 200 24" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
-      <line x1="0" y1="20" x2="200" y2="20" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
+    return html`<svg key=${svgKey} class="vel-heartbeat-svg" viewBox="0 0 200 16" preserveAspectRatio="none" style="width:100%;height:100%;display:block;position:absolute;top:0;left:0">
+      <line x1="0" y1="14" x2="200" y2="14" stroke="rgba(255,255,255,0.08)" stroke-width="1" />
     </svg>`;
   }
 
   const len = heartbeat.length;
   const w = 200;
-  const h = 24;
-  const baseline = 20;
-  const spikeHeight = 16; // how tall spikes go (baseline - spikeHeight = 4)
+  const h = 16;
+  const baseline = 14;
+  const spikeHeight = 12; // how tall spikes go (baseline - spikeHeight = 2)
 
   // Build SVG path points
   // Each tick gets a horizontal segment. Active ticks get a sharp spike.
@@ -120,7 +127,7 @@ function HeartbeatLine({ heartbeat, color, opacity }) {
   // Gradient: transparent on left (old), colored on right (recent)
   const gradId = 'hb-' + Math.random().toString(36).slice(2, 8);
 
-  return html`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:100%;display:block">
+  return html`<svg key=${svgKey} class="vel-heartbeat-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:100%;display:block;position:absolute;top:0;left:0">
     <defs>
       <linearGradient id=${gradId} x1="0" y1="0" x2="1" y2="0">
         <stop offset="0%" stop-color=${color} stop-opacity="0" />
@@ -170,18 +177,23 @@ function SessionRow({ s }) {
         </div>
       `}
       <!-- Heartbeat + Context bar -->
-      <div style="position:relative;margin-top:6px;padding-left:16px;display:flex;align-items:center;gap:8px">
-        <div style="flex:1;height:24px;position:relative;overflow:hidden;border-radius:4px;background:rgba(255,255,255,0.02)">
+      <div style="position:relative;margin-top:4px;padding-left:16px;display:flex;align-items:center;gap:8px">
+        <!-- Heartbeat SVG fills the background absolutely -->
+        <div style="position:absolute;top:0;left:16px;right:68px;bottom:0;overflow:hidden;border-radius:2px">
           <${HeartbeatLine}
             heartbeat=${s.heartbeat}
             color=${s.working ? 'var(--green)' : s.ageMins < 5 ? '#eab308' : 'rgba(255,255,255,0.15)'}
-            opacity=${s.working ? 0.8 : s.ageMins < 5 ? 0.5 : 0.2}
+            opacity=${s.working ? 0.4 : s.ageMins < 5 ? 0.2 : 0.1}
           />
+        </div>
+        <!-- Context bar in normal flow -->
+        <div style="flex:1;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;position:relative;z-index:1">
           ${hasCtx && html`
-            <div style="position:absolute;bottom:0;left:0;height:3px;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
+            <div style="height:100%;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
           `}
         </div>
-        <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right">
+        <!-- Token label with text shadow -->
+        <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right;text-shadow:0 0 4px rgba(0,0,0,0.8),0 0 8px rgba(0,0,0,0.6);position:relative;z-index:1">
           ${fmtTokens(used)}/${fmtTokens(maxCtx)} (${Math.round(pct)}%)
         </span>
       </div>
