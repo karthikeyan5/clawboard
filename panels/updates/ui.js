@@ -1,5 +1,108 @@
 import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
+function DirtyWarning({ repo, api, onResolved }) {
+  const [resolving, setResolving] = useState(null); // 'stash-pull' | 'reset-pull' | 'diff'
+  const [diffText, setDiffText] = useState(null);
+  const [result, setResult] = useState(null);
+
+  const resolve = async (action) => {
+    setResolving(action);
+    setResult(null);
+    try {
+      const r = await api.fetch('/api/updates/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo: repo.name, action })
+      });
+      const d = await r.json();
+      if (action === 'diff') {
+        setDiffText(d.diff || 'No changes');
+      } else {
+        setResult(d);
+        if (d.ok && onResolved) setTimeout(onResolved, 500);
+      }
+    } catch (e) {
+      setResult({ ok: false, error: e.message });
+    }
+    setResolving(null);
+  };
+
+  return html`
+    <div style="margin-top:6px;padding:6px 8px;background:rgba(245,158,11,0.08);border-radius:6px;border:1px solid rgba(245,158,11,0.15)">
+      <div style="font-size:9px;color:var(--yellow, #f59e0b);margin-bottom:4px;font-weight:600">⚠ Local modifications will block pull:</div>
+      ${repo.dirtyFiles.map(f => html`
+        <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);padding:1px 0">${f}</div>
+      `)}
+      <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
+        <button onClick=${() => resolve('stash-pull')} disabled=${!!resolving}
+          style="font-size:9px;padding:2px 8px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);border-radius:4px;cursor:pointer">
+          ${resolving === 'stash-pull' ? '...' : '📦 Stash & Pull'}
+        </button>
+        <button onClick=${() => resolve('reset-pull')} disabled=${!!resolving}
+          style="font-size:9px;padding:2px 8px;background:rgba(239,68,68,0.1);color:var(--red, #ef4444);border:1px solid rgba(239,68,68,0.2);border-radius:4px;cursor:pointer">
+          ${resolving === 'reset-pull' ? '...' : '🗑 Reset & Pull'}
+        </button>
+        <button onClick=${() => resolve('diff')} disabled=${!!resolving}
+          style="font-size:9px;padding:2px 8px;background:rgba(255,255,255,0.05);color:var(--text-dim);border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer">
+          ${resolving === 'diff' ? '...' : '👁 View Diff'}
+        </button>
+      </div>
+      ${result && html`
+        <div style="margin-top:4px;font-size:9px;padding:4px 6px;border-radius:4px;background:${result.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'};color:${result.ok ? 'var(--green)' : 'var(--red)'}">
+          ${result.ok ? '✅ Resolved' : '❌ ' + result.error}
+          ${result.output && html`<pre style="margin-top:2px;font-size:8px;white-space:pre-wrap;opacity:0.7;max-height:80px;overflow:auto">${result.output}</pre>`}
+        </div>
+      `}
+      ${diffText && html`
+        <pre style="margin-top:4px;font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);background:rgba(0,0,0,0.3);padding:6px;border-radius:4px;max-height:150px;overflow:auto;white-space:pre-wrap">${diffText}</pre>
+      `}
+    </div>
+  `;
+}
+
+function DeployLog({ api }) {
+  const [log, setLog] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const fetchLog = async () => {
+    setLoading(true);
+    try {
+      const r = await api.fetch('/api/updates/deploy-log');
+      const d = await r.json();
+      setLog(d);
+    } catch (e) {}
+    setLoading(false);
+  };
+
+  if (!expanded) {
+    return html`
+      <button onClick=${() => { setExpanded(true); fetchLog(); }}
+        style="margin-top:6px;font-size:9px;padding:2px 8px;background:rgba(255,255,255,0.04);color:var(--text-dim);border:1px solid rgba(255,255,255,0.08);border-radius:4px;cursor:pointer">
+        📋 Deploy Log
+      </button>
+    `;
+  }
+
+  return html`
+    <div style="margin-top:6px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:9px;color:var(--text-dim);font-weight:600">Deploy Log</span>
+        <button onClick=${fetchLog} disabled=${loading}
+          style="font-size:9px;padding:1px 6px;background:rgba(255,255,255,0.05);color:var(--text-dim);border:none;border-radius:3px;cursor:pointer">
+          ${loading ? '...' : '↻'}
+        </button>
+        <button onClick=${() => setExpanded(false)}
+          style="font-size:9px;padding:1px 6px;background:none;color:var(--text-dim);border:none;cursor:pointer">✕</button>
+      </div>
+      ${log && log.log ? html`
+        <pre style="font-size:8px;font-family:'JetBrains Mono',monospace;color:var(--text-dim);background:rgba(0,0,0,0.3);padding:8px;border-radius:4px;max-height:200px;overflow:auto;white-space:pre-wrap;line-height:1.4">${log.log}</pre>
+        ${log.timestamp && html`<div style="font-size:8px;color:var(--text-dim);opacity:0.5;margin-top:2px;text-align:right">${new Date(log.timestamp).toLocaleString()}</div>`}
+      ` : html`<div style="font-size:9px;color:var(--text-dim)">No deploy log found</div>`}
+    </div>
+  `;
+}
+
 export default function UpdatesPanel({ data, error, connected, lastUpdate, api, cls }) {
   const [status, setStatus] = useState(null);
   const [checking, setChecking] = useState(false);
@@ -83,26 +186,29 @@ export default function UpdatesPanel({ data, error, connected, lastUpdate, api, 
             const dotColor = hasError ? 'var(--red, #ef4444)' : behind > 0 ? 'var(--yellow, #f59e0b)' : 'var(--green, #22c55e)';
 
             return html`
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:${bgColor};border:1px solid ${borderColor}">
-                <div style="display:flex;align-items:center;gap:8px;min-width:0">
-                  <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
-                  <span style="font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</span>
-                  ${r.branch && html`<span style="font-size:10px;color:var(--text-dim, #8892a4);opacity:0.7">${r.branch}</span>`}
+              <div style="padding:8px 12px;border-radius:8px;background:${bgColor};border:1px solid ${borderColor}">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></span>
+                    <span style="font-size:13px;font-weight:600;font-family:'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</span>
+                    ${r.branch && html`<span style="font-size:10px;color:var(--text-dim, #8892a4);opacity:0.7">${r.branch}</span>`}
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+                    ${hasError
+                      ? html`<span style="font-size:10px;color:var(--red, #ef4444)">${r.error}</span>`
+                      : html`
+                        <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-dim, #8892a4)">
+                          ${sha(r.currentSHA)}${r.latestSHA && r.latestSHA !== r.currentSHA ? html` → <span style="color:var(--yellow, #f59e0b)">${sha(r.latestSHA)}</span>` : ''}
+                        </span>
+                        ${behind > 0
+                          ? html`<span style="font-size:10px;color:var(--yellow, #f59e0b);font-weight:600">${behind} behind</span>`
+                          : html`<span style="font-size:10px;color:var(--green, #22c55e)">✓ current</span>`
+                        }
+                      `
+                    }
+                  </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-                  ${hasError
-                    ? html`<span style="font-size:10px;color:var(--red, #ef4444)">${r.error}</span>`
-                    : html`
-                      <span style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-dim, #8892a4)">
-                        ${sha(r.currentSHA)}${r.latestSHA && r.latestSHA !== r.currentSHA ? html` → <span style="color:var(--yellow, #f59e0b)">${sha(r.latestSHA)}</span>` : ''}
-                      </span>
-                      ${behind > 0
-                        ? html`<span style="font-size:10px;color:var(--yellow, #f59e0b);font-weight:600">${behind} behind</span>`
-                        : html`<span style="font-size:10px;color:var(--green, #22c55e)">✓ current</span>`
-                      }
-                    `
-                  }
-                </div>
+                ${r.hasDirty && html`<${DirtyWarning} repo=${r} api=${api} onResolved=${check} />`}
               </div>
             `;
           })}
@@ -112,6 +218,7 @@ export default function UpdatesPanel({ data, error, connected, lastUpdate, api, 
       ${deployMsg && html`
         <div style="margin-top:8px;font-size:11px;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,0.04);color:var(--text-dim, #8892a4)">${deployMsg}</div>
       `}
+      <${DeployLog} api=${api} />
 
       ${status && status.checkedAt && html`
         <div style="margin-top:8px;font-size:10px;color:var(--text-dim, #8892a4);opacity:0.6;text-align:right">
