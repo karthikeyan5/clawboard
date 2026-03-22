@@ -1,7 +1,7 @@
 import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
 function DirtyWarning({ repo, api, onResolved }) {
-  const [resolving, setResolving] = useState(null); // 'stash-pull' | 'reset-pull' | 'diff'
+  const [resolving, setResolving] = useState(null); // 'stash-pull' | 'stash-drop-pull' | 'diff'
   const [diffText, setDiffText] = useState(null);
   const [result, setResult] = useState(null);
 
@@ -35,12 +35,14 @@ function DirtyWarning({ repo, api, onResolved }) {
       `)}
       <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
         <button onClick=${() => resolve('stash-pull')} disabled=${!!resolving}
-          style="font-size:9px;padding:2px 8px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);border-radius:4px;cursor:pointer">
-          ${resolving === 'stash-pull' ? '...' : '📦 Stash & Pull'}
+          style="font-size:9px;padding:2px 8px;background:rgba(34,197,94,0.15);color:var(--green);border:1px solid rgba(34,197,94,0.3);border-radius:4px;cursor:pointer"
+          title="Save changes, update, reapply changes">
+          ${resolving === 'stash-pull' ? '...' : '🔄 Update (keep changes)'}
         </button>
-        <button onClick=${() => resolve('reset-pull')} disabled=${!!resolving}
-          style="font-size:9px;padding:2px 8px;background:rgba(239,68,68,0.1);color:var(--red, #ef4444);border:1px solid rgba(239,68,68,0.2);border-radius:4px;cursor:pointer">
-          ${resolving === 'reset-pull' ? '...' : '🗑 Reset & Pull'}
+        <button onClick=${() => resolve('stash-drop-pull')} disabled=${!!resolving}
+          style="font-size:9px;padding:2px 8px;background:rgba(245,158,11,0.1);color:var(--yellow, #f59e0b);border:1px solid rgba(245,158,11,0.2);border-radius:4px;cursor:pointer"
+          title="Save changes aside, update cleanly (recoverable via git stash)">
+          ${resolving === 'stash-drop-pull' ? '...' : '⬆ Update (discard changes)'}
         </button>
         <button onClick=${() => resolve('diff')} disabled=${!!resolving}
           style="font-size:9px;padding:2px 8px;background:rgba(255,255,255,0.05);color:var(--text-dim);border:1px solid rgba(255,255,255,0.1);border-radius:4px;cursor:pointer">
