@@ -14,6 +14,9 @@ d = {}
 agent_ids = set()
 for sessions_file in glob.glob(os.path.join(AGENTS_DIR, "*/sessions/sessions.json")):
     agent_id = sessions_file.split("/agents/")[1].split("/sessions/")[0]
+    # Skip .bak backup directories (e.g. main.bak.202603191540)
+    if ".bak" in agent_id:
+        continue
     agent_ids.add(agent_id)
     try:
         with open(sessions_file) as f:

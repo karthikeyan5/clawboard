@@ -1,0 +1,22 @@
+{
+  "checks": [
+    {
+      "type": "file_exists",
+      "path": "sessions-summary.json",
+      "relative_to": "workspace",
+      "hint": "sessions-summary.json not found. Run sessions-gen.sh or check crontab."
+    },
+    {
+      "type": "file_exists",
+      "path": "data/sessions-gen.sh",
+      "relative_to": "app",
+      "hint": "sessions-gen.sh data producer script is missing."
+    },
+    {
+      "type": "file_exists",
+      "path": "app.json",
+      "relative_to": "app",
+      "hint": "velclawboard app.json is missing. The app directory may be corrupted."
+    }
+  ]
+}
